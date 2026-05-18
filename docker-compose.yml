@@ -1,0 +1,70 @@
+﻿services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    image: laravel-messenger-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    networks:
+      - messenger-network
+
+  webserver:
+    image: nginx:latest
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d/
+    networks:
+      - messenger-network
+
+  mariadb:
+    image: mariadb:12
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: messenger
+      MYSQL_USER: user
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: root_password
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - messenger-network
+
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo_root
+      MONGO_INITDB_ROOT_PASSWORD: mongo_password
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - messenger-network
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - messenger-network
+
+networks:
+  messenger-network:
+    driver: bridge
+
+volumes:
+  mariadb_data:
+  mongodb_data:
+  redis_data:
