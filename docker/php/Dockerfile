@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y \
 # Устанавливаем расширения PHP
 RUN docker-php-ext-install pdo_mysql bcmath gd zip
 
+#Установка Node.JS
+RUN apt-get update && apt-get install -y nodejs npm
+
 # Устанавливаем расширение MongoDB через PECL
 RUN pecl install mongodb && docker-php-ext-enable mongodb
 
