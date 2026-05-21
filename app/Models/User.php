@@ -30,12 +30,4 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
-
-    /**
-     * Комнаты чатов, в которых состоит пользователь.
-     */
-    public function chatRooms(): BelongsToMany
-    {
-        return $this->belongsToMany(ChatRoom::class)->withPivot('role', 'last_read_at')->withTimestamps();
-    }
 }
