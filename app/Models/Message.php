@@ -18,12 +18,12 @@ class Message extends MongoModel
         'text',
         'attachments',
         'is_edited',
-        'is_deleted'
+        'is_deleted',
+        'user_id'
     ];
 
     // Автоматическое приведение типов для вложений и флагов
     protected $casts = [
-        'attachments' => AsArrayObject::class, // Сохраняется как JSON-массив в Mongo
         'is_edited'   => 'boolean',
         'is_deleted'  => 'boolean',
         'created_at'  => 'datetime',
