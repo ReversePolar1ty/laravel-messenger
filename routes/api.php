@@ -8,10 +8,6 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// Группа роутов, требующих авторизации
 //Route::middleware('auth:sanctum')->group(function () {
-
-    // Роут для отправки сообщения
-Route::post('/messages', [SendMessageController::class, 'store']);
-
+    Route::post('/messages', [SendMessageController::class, 'store']);
 //});

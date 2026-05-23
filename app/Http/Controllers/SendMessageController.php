@@ -21,7 +21,7 @@ class SendMessageController extends Controller
         $message = Message::create([
             'chat_id'    => $validated['chat_id'],
             'user_id'    => $user?->id ?? 1,
-            'sender_id'    => $user?->auth()->id ?? 1,
+            'sender_id'    => $user?->id ?? 1,
             'type'       => $validated['type'] ?? 'text',
             'text'       => $validated['text'] ?? null,
             // attachments и другие поля по необходимости

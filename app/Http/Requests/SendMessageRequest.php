@@ -2,41 +2,37 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Contracts\Validation\ValidationRule;
+use App\Models\Chat;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class SendMessageRequest extends FormRequest
 {
-
     public function authorize(): bool
     {
-        // Проверка, состоит ли пользователь в этом чате.
-        // Policy, например: return $this->user()->can('send-message', $this->chat_id);
-        return true;
+        if (! $this->user() || ! $this->chat_id) {
+            return false;
+        }
+
+        return DB::connection((new Chat())->getConnectionName())
+            ->table('chat_participants')
+            ->where('chat_id', $this->chat_id)
+            ->where('user_id', $this->user()->id)
+            ->exists();
     }
 
     public function rules(): array
     {
         return [
-            // Проверяем, что ID чата передан, это UUID и он существует в MariaDB
             'chat_id' => ['required', 'uuid', 'exists:chats,id'],
-
-            // Тип сообщения (по умолчанию text, но может быть image, file и т.д.)
-            'type'    => ['required', 'string', Rule::in(['text', 'image', 'file'])],
-
-            // Текст обязателен, если нет вложений
-            'text'    => ['required_if:type,text', 'nullable', 'string', 'max:5000'],
-
-            // Валидация файлов (опционально, зависит от реализации на фронте)
-//            'attachments'   => ['nullable', 'array', 'max:10'],
-//            'attachments.*' => ['file', 'max:20480'], // Максимум 20 МБ на файл
+            'type' => ['required', 'string', Rule::in(['text', 'image', 'file'])],
+            'text' => ['required_if:type,text', 'nullable', 'string', 'max:5000'],
         ];
     }
 
     protected function prepareForValidation(): void
     {
-        // Устанавливаем дефолтный тип, если он не передан
         $this->merge([
             'type' => $this->type ?? 'text',
         ]);
