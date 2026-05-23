@@ -13,10 +13,14 @@ class ChatController extends Controller
 {
     public function index()
     {
+        // Текущий пользователь нужен для списка его чатов и для исключения его из поиска людей.
         $user = request()->user();
         $search = trim((string) request('search', ''));
+
+        // Чаты и участники лежат в MariaDB, поэтому явно используем соединение модели Chat.
         $chatConnection = (new Chat())->getConnectionName();
 
+        // Показываем только чаты, где пользователь есть в таблице участников.
         $chats = Chat::query()
             ->whereIn('id', DB::connection($chatConnection)->table('chat_participants')
                 ->select('chat_id')
@@ -27,6 +31,7 @@ class ChatController extends Controller
 
         $users = collect();
 
+        // Если введен поиск, ищем людей по имени и сразу отмечаем, есть ли уже direct-чат.
         if ($search !== '') {
             $users = User::query()
                 ->where('id', '!=', $user->id)
@@ -60,6 +65,7 @@ class ChatController extends Controller
 
     public function store(Request $request)
     {
+        // Для личного чата пока нужен только ID второго пользователя.
         $validated = $request->validate([
             'user_id' => ['required', 'integer', 'exists:users,id'],
         ]);
@@ -70,12 +76,15 @@ class ChatController extends Controller
         abort_if($user->id === $targetUserId, 422, 'Нельзя создать чат с самим собой.');
 
         $chatConnection = (new Chat())->getConnectionName();
+
+        // Не создаем дубль: если direct-чат между этими людьми уже есть, открываем его.
         $existingChatId = $this->findDirectChatId($chatConnection, $user->id, $targetUserId);
 
         if ($existingChatId) {
             return redirect()->route('chats.show', $existingChatId);
         }
 
+        // Чат и участники должны создаться вместе, поэтому используем транзакцию MariaDB.
         $chat = DB::connection($chatConnection)->transaction(function () use ($chatConnection, $targetUserId, $user) {
             $chat = Chat::create([
                 'type' => 'direct',
@@ -108,8 +117,10 @@ class ChatController extends Controller
         $user = request()->user();
         $chatConnection = (new Chat())->getConnectionName();
 
+        // UUID чата можно получить извне, поэтому перед показом проверяем участие.
         abort_unless($this->isParticipant($chatConnection, $chat->id, $user->id), 403);
 
+        // Сообщения хранятся в MongoDB, а сам чат и участники - в MariaDB.
         $messages = Message::where('chat_id', $chat->id)
             ->orderBy('created_at', 'asc')
             ->get();
@@ -137,11 +148,13 @@ class ChatController extends Controller
 
     private function decorateChats($chats, int $currentUserId, string $chatConnection)
     {
+        // Добавляем к каждому чату участников и понятное название для фронтенда.
         return $chats->map(fn (Chat $chat) => $this->decorateChat($chat, $currentUserId, $chatConnection));
     }
 
     private function decorateChat(Chat $chat, int $currentUserId, string $chatConnection): array
     {
+        // Участники нужны фронтенду и для отображения direct-чата именем собеседника.
         $participants = DB::connection($chatConnection)
             ->table('chat_participants')
             ->join('users', 'users.id', '=', 'chat_participants.user_id')
@@ -166,6 +179,7 @@ class ChatController extends Controller
 
     private function findDirectChatId(string $chatConnection, int $firstUserId, int $secondUserId): ?string
     {
+        // Сначала ищем chat_id, где есть оба пользователя.
         $chatIds = DB::connection($chatConnection)
             ->table('chat_participants')
             ->whereIn('user_id', [$firstUserId, $secondUserId])
@@ -177,6 +191,7 @@ class ChatController extends Controller
             return null;
         }
 
+        // Затем убеждаемся, что найденный чат именно личный, а не будущий групповой.
         return DB::connection($chatConnection)
             ->table('chats')
             ->whereIn('id', $chatIds)
@@ -186,6 +201,7 @@ class ChatController extends Controller
 
     private function isParticipant(string $chatConnection, string $chatId, int $userId): bool
     {
+        // Общая проверка доступа к чату по таблице участников.
         return DB::connection($chatConnection)
             ->table('chat_participants')
             ->where('chat_id', $chatId)
