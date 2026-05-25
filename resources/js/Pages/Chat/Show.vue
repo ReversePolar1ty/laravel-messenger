@@ -128,8 +128,8 @@ onMounted(() => {
 
     if (window.Echo) {
         echoChannel = window.Echo.private(`chat.${props.chat.id}`)
-            .listen('MessageSentEvent', (event) => {
-                const message = event.message || event.data || event;
+            .listen('MessageSent', (event) => {
+                const message = event.message || event.messageData || event.data || event;
 
                 if (message) {
                     pushMessage(message);

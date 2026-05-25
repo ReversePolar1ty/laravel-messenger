@@ -13,13 +13,13 @@ RUN apt-get update && apt-get install -y \
     libssl-dev
 
 # Устанавливаем расширения PHP
-RUN docker-php-ext-install pdo_mysql bcmath gd zip
+RUN docker-php-ext-install pdo_mysql bcmath gd zip pcntl
 
 #Установка Node.JS
 RUN apt-get update && apt-get install -y nodejs npm
 
 # Устанавливаем расширение MongoDB через PECL
-RUN pecl install mongodb && docker-php-ext-enable mongodb
+RUN pecl install mongodb redis && docker-php-ext-enable mongodb redis
 
 # Устанавливаем Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
