@@ -33,25 +33,26 @@ class ChatController extends Controller
 
         // Если введен поиск, ищем людей по имени и сразу отмечаем, есть ли уже direct-чат.
         if ($search !== '') {
-            $users = User::query()
-                ->where('id', '!=', $user->id)
-                ->where('name', 'like', "%{$search}%")
-                ->orderBy('name')
-                ->limit(10)
-                ->get(['id', 'name', 'email'])
-                ->map(function (User $foundUser) use ($chatConnection, $user) {
-                    return [
-                        'id' => $foundUser->id,
-                        'name' => $foundUser->name,
-                        'email' => $foundUser->email,
-                        'chat_id' => $this->findDirectChatId($chatConnection, $user->id, $foundUser->id),
-                    ];
-                });
+            $users = $this->searchUsers($search, $chatConnection, $user->id);
         }
 
         return Inertia::render('Chat/Index', [
             'chats' => $this->decorateChats($chats, $user->id, $chatConnection),
             'users' => $users,
+            'filters' => [
+                'search' => $search,
+            ],
+        ]);
+    }
+
+    public function search(Request $request)
+    {
+        $user = $request->user();
+        $search = trim((string) $request->query('search', ''));
+        $chatConnection = (new Chat())->getConnectionName();
+
+        return response()->json([
+            'users' => $this->searchUsers($search, $chatConnection, $user->id),
             'filters' => [
                 'search' => $search,
             ],
@@ -175,6 +176,28 @@ class ChatController extends Controller
             : ($chat->title ?? 'Групповой чат');
 
         return $data;
+    }
+
+    private function searchUsers(string $search, string $chatConnection, int $currentUserId)
+    {
+        if ($search === '') {
+            return collect();
+        }
+
+        return User::query()
+            ->where('id', '!=', $currentUserId)
+            ->where('name', 'like', "%{$search}%")
+            ->orderBy('name')
+            ->limit(10)
+            ->get(['id', 'name', 'email'])
+            ->map(function (User $foundUser) use ($chatConnection, $currentUserId) {
+                return [
+                    'id' => $foundUser->id,
+                    'name' => $foundUser->name,
+                    'email' => $foundUser->email,
+                    'chat_id' => $this->findDirectChatId($chatConnection, $currentUserId, $foundUser->id),
+                ];
+            });
     }
 
     private function findDirectChatId(string $chatConnection, int $firstUserId, int $secondUserId): ?string

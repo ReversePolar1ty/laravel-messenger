@@ -18,30 +18,30 @@ class ChatTestSeeder extends Seeder
      */
     public function run(): void
     {
-        // Очищаем старые данные для чистоты теста (по желанию)
-        // Message::truncate(); // В MongoDB
+//         Очищаем старые данные для чистоты теста (по желанию)
+         Message::truncate(); // В MongoDB
 
         $this->command->info('Генерация пользователей...');
 
         // 1. Создаем 4 тестовых пользователей в MariaDB
         $users = collect([
             [
-                'name' => 'Иван Иванов',
-                'email' => 'ivan@example.com',
+                'name' => 'Daniil',
+                'email' => '1@mail.ru',
                 'password' => Hash::make('password'),
             ],
             [
-                'name' => 'Мария Сидорова',
+                'name' => 'Билли Бутчер',
                 'email' => 'maria@example.com',
                 'password' => Hash::make('password'),
             ],
             [
-                'name' => 'Алексей Петров',
+                'name' => 'Виталий Цаль',
                 'email' => 'alex@example.com',
                 'password' => Hash::make('password'),
             ],
             [
-                'name' => 'Техподдержка',
+                'name' => 'Билли Бонс',
                 'email' => 'support@example.com',
                 'password' => Hash::make('password'),
             ],
@@ -49,7 +49,7 @@ class ChatTestSeeder extends Seeder
             return User::firstOrCreate(['email' => $userData['email']], $userData);
         });
 
-        $ivan = $users->firstWhere('email', 'ivan@example.com');
+        $ivan = $users->firstWhere('email', '1@mail.ru');
         $maria = $users->firstWhere('email', 'maria@example.com');
         $alex = $users->firstWhere('email', 'alex@example.com');
 
@@ -81,7 +81,7 @@ class ChatTestSeeder extends Seeder
 
         $groupChat = Chat::create([
             'type' => 'group',
-            'title' => 'Команда стартапа 🚀',
+            'title' => 'TeamPenisVPN 🚀',
             'creator_id' => $ivan->id,
         ]);
 

@@ -28,6 +28,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/chats', [ChatController::class, 'index'])->name('chats.index');
+    Route::get('/chats/search', [ChatController::class, 'search'])->name('chats.search');
     Route::post('/chats/direct', [ChatController::class, 'store'])->name('chats.direct.store');
 
     // Страница конкретного чата (где рендерится наш Vue-компонент)

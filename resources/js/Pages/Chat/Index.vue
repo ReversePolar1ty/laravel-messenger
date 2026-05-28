@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 const props = defineProps({
     chats: {
@@ -21,23 +21,76 @@ const props = defineProps({
 });
 
 const search = ref(props.filters.search || '');
+const searchUsers = ref([...props.users]);
+const isSearching = ref(false);
 const startingUserId = ref(null);
 let searchTimeout = null;
+let searchController = null;
 
 watch(search, (value) => {
     clearTimeout(searchTimeout);
 
     searchTimeout = setTimeout(() => {
-        router.get(route('chats.index'), {
-            search: value || undefined,
-        }, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-            only: ['chats', 'users', 'filters'],
-        });
-    }, 300);
+        fetchSearchResults(value);
+    }, 400);
 });
+
+onBeforeUnmount(() => {
+    clearTimeout(searchTimeout);
+    searchController?.abort();
+});
+
+const fetchSearchResults = async (value) => {
+    const query = value.trim();
+
+    searchController?.abort();
+
+    if (!query) {
+        searchUsers.value = [];
+        isSearching.value = false;
+        searchController = null;
+        updateSearchUrl('');
+        return;
+    }
+
+    const controller = new AbortController();
+    searchController = controller;
+    isSearching.value = true;
+
+    try {
+        const response = await window.axios.get(route('chats.search'), {
+            params: {
+                search: query,
+            },
+            signal: controller.signal,
+            skipGlobalLoader: true,
+        });
+
+        searchUsers.value = response.data.users || [];
+        updateSearchUrl(query);
+    } catch (error) {
+        if (error.code !== 'ERR_CANCELED') {
+            searchUsers.value = [];
+        }
+    } finally {
+        if (searchController === controller) {
+            isSearching.value = false;
+            searchController = null;
+        }
+    }
+};
+
+const updateSearchUrl = (query) => {
+    const url = new URL(window.location.href);
+
+    if (query) {
+        url.searchParams.set('search', query);
+    } else {
+        url.searchParams.delete('search');
+    }
+
+    window.history.replaceState(window.history.state, '', url);
+};
 
 const filteredChats = computed(() => {
     const query = search.value.trim().toLowerCase();
@@ -108,12 +161,19 @@ const startDirectChat = (user) => {
                         {{ chats.length }} активных диалогов
                     </p>
                 </div>
-                <input
-                    v-model="search"
-                    type="search"
-                    class="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:w-80"
-                    placeholder="Поиск чата или человека"
-                >
+                <div class="relative w-full sm:w-80">
+                    <input
+                        v-model="search"
+                        type="search"
+                        class="w-full rounded-md border-gray-300 pr-10 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        placeholder="Поиск чата или человека"
+                    >
+                    <span
+                        v-if="isSearching"
+                        class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700"
+                        aria-hidden="true"
+                    />
+                </div>
             </div>
         </template>
 
@@ -134,7 +194,7 @@ const startDirectChat = (user) => {
                     </div>
 
                     <div
-                        v-else-if="users.length === 0"
+                        v-else-if="!isSearching && searchUsers.length === 0"
                         class="px-5 py-8 text-sm text-gray-500"
                     >
                         Пользователи не найдены.
@@ -142,7 +202,7 @@ const startDirectChat = (user) => {
 
                     <div v-else class="divide-y divide-gray-100">
                         <div
-                            v-for="user in users"
+                            v-for="user in searchUsers"
                             :key="user.id"
                             class="flex items-center gap-3 px-4 py-4 sm:px-5"
                         >
