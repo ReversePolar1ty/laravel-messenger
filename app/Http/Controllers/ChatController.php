@@ -6,12 +6,15 @@ use App\Models\Chat;
 use App\Models\ChatRead;
 use App\Models\Message;
 use App\Models\User;
+use App\Services\UserStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
 class ChatController extends Controller
 {
+    public function __construct(private readonly UserStatusService $statusService) {}
+
     public function index()
     {
         // Текущий пользователь нужен для списка его чатов и для исключения его из поиска людей.
@@ -128,7 +131,7 @@ class ChatController extends Controller
             ->get();
 
         return Inertia::render('Chat/Show', [
-            'chat' => $this->decorateChat($chat, $user->id, $chatConnection),
+            'chat' => $this->decorateChat($chat, $user->id, $chatConnection, true),
             'messages' => $messages,
             'readStates' => $this->readStates($chat->id),
         ]);
@@ -155,7 +158,7 @@ class ChatController extends Controller
         return $chats->map(fn (Chat $chat) => $this->decorateChat($chat, $currentUserId, $chatConnection));
     }
 
-    private function decorateChat(Chat $chat, int $currentUserId, string $chatConnection): array
+    private function decorateChat(Chat $chat, int $currentUserId, string $chatConnection, bool $withStatus = false): array
     {
         // Участники нужны фронтенду и для отображения direct-чата именем собеседника.
         $participants = DB::connection($chatConnection)
@@ -184,6 +187,10 @@ class ChatController extends Controller
         $data['display_title'] = $chat->type === 'direct'
             ? ($otherUser->name ?? 'Личный чат')
             : ($chat->title ?? 'Групповой чат');
+
+        $data['other_user_status'] = $withStatus && $otherUser
+            ? $this->statusService->getStatus((int) $otherUser->id)
+            : null;
 
         return $data;
     }

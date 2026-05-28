@@ -1,13 +1,60 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
+const page = usePage();
+const isChatsSection = computed(() => route().current('chats.*'));
+
+let onlineChannel = null;
+let heartbeatTimer = null;
+
+const heartbeat = async () => {
+    if (!isChatsSection.value) {
+        return;
+    }
+
+    try {
+        await window.axios.post(route('users.status.heartbeat'), {}, {
+            skipGlobalLoader: true,
+        });
+    } catch {
+        // Online status is best-effort and will expire by Redis TTL.
+    }
+};
+
+const emitOnlineEvent = (name, detail) => {
+    window.dispatchEvent(new CustomEvent(name, { detail }));
+};
+
+onMounted(() => {
+    if (!page.props.auth?.user || !isChatsSection.value) {
+        return;
+    }
+
+    heartbeat();
+    heartbeatTimer = window.setInterval(heartbeat, 30000);
+
+    if (window.Echo) {
+        onlineChannel = window.Echo.join('online')
+            .here((users) => emitOnlineEvent('online-users:here', users))
+            .joining((user) => emitOnlineEvent('online-users:joining', user))
+            .leaving((user) => emitOnlineEvent('online-users:leaving', user));
+    }
+});
+
+onBeforeUnmount(() => {
+    window.clearInterval(heartbeatTimer);
+
+    if (window.Echo && onlineChannel) {
+        window.Echo.leave('online');
+    }
+});
 </script>
 
 <template>
@@ -22,7 +69,7 @@ const showingNavigationDropdown = ref(false);
                         <div class="flex">
                             <!-- Logo -->
                             <div class="flex shrink-0 items-center">
-                                <Link :href="route('dashboard')">
+                                <Link :href="route('chats.index')">
                                     <ApplicationLogo
                                         class="block h-9 w-auto fill-current text-gray-800"
                                     />
@@ -33,12 +80,6 @@ const showingNavigationDropdown = ref(false);
                             <div
                                 class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
                             >
-                                <NavLink
-                                    :href="route('dashboard')"
-                                    :active="route().current('dashboard')"
-                                >
-                                    Dashboard
-                                </NavLink>
                                 <NavLink
                                     :href="route('chats.index')"
                                     :active="route().current('chats.*')"
@@ -146,12 +187,6 @@ const showingNavigationDropdown = ref(false);
                     class="sm:hidden"
                 >
                     <div class="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            :href="route('dashboard')"
-                            :active="route().current('dashboard')"
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
                         <ResponsiveNavLink
                             :href="route('chats.index')"
                             :active="route().current('chats.*')"

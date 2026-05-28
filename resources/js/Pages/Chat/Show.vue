@@ -27,9 +27,32 @@ const sending = ref(false);
 const error = ref('');
 const messagesContainer = ref(null);
 const readRequestMessageId = ref(null);
+const companionStatus = ref(props.chat.other_user_status || {
+    status: 'offline',
+    last_seen: null,
+});
 
 const chatTitle = computed(() => props.chat.display_title || props.chat.title || 'Чат');
 const chatInitial = computed(() => chatTitle.value.trim().charAt(0).toUpperCase() || 'C');
+
+const companion = computed(() =>
+    (props.chat.participants || []).find(
+        (participant) => Number(participant.id) !== Number(currentUser.value?.id),
+    ),
+);
+const isDirectChat = computed(() => props.chat.type === 'direct' && companion.value);
+const companionStatusText = computed(() => {
+    if (!isDirectChat.value) {
+        return props.chat.type === 'group' ? 'Групповой чат' : 'Личный чат';
+    }
+
+    if (companionStatus.value?.status === 'online') {
+        return 'В сети';
+    }
+
+    return `Был(а) в сети ${companionStatus.value?.last_seen || 'давно'}`;
+});
+const companionIsOnline = computed(() => isDirectChat.value && companionStatus.value?.status === 'online');
 
 const sortedMessages = computed(() =>
     [...messageList.value].sort((a, b) => {
@@ -226,6 +249,57 @@ const markReadWhenVisible = () => {
     }
 };
 
+const refreshCompanionStatus = async () => {
+    if (!isDirectChat.value) {
+        return;
+    }
+
+    try {
+        const response = await window.axios.get(route('users.status.show', companion.value.id), {
+            skipGlobalLoader: true,
+        });
+
+        companionStatus.value = response.data;
+    } catch {
+        // Keep the last known status if the lightweight status request fails.
+    }
+};
+
+const setCompanionOnline = (user) => {
+    if (Number(user?.id) === Number(companion.value?.id)) {
+        companionStatus.value = {
+            status: 'online',
+            last_seen: null,
+        };
+    }
+};
+
+const setCompanionOffline = (user) => {
+    if (Number(user?.id) === Number(companion.value?.id)) {
+        companionStatus.value = {
+            status: 'offline',
+            last_seen: 'только что',
+        };
+        refreshCompanionStatus();
+    }
+};
+
+const handleOnlineUsersHere = (event) => {
+    const users = event.detail || [];
+
+    if (users.some((user) => Number(user.id) === Number(companion.value?.id))) {
+        setCompanionOnline(companion.value);
+    }
+};
+
+const handleOnlineUserJoining = (event) => {
+    setCompanionOnline(event.detail);
+};
+
+const handleOnlineUserLeaving = (event) => {
+    setCompanionOffline(event.detail);
+};
+
 const sendMessage = async () => {
     const text = newMessage.value.trim();
 
@@ -259,12 +333,18 @@ const sendMessage = async () => {
 };
 
 let echoChannel = null;
+let statusTimer = null;
 
 onMounted(() => {
     scrollToBottom();
     markReadWhenVisible();
+    refreshCompanionStatus();
+    statusTimer = window.setInterval(refreshCompanionStatus, 15000);
     document.addEventListener('visibilitychange', markReadWhenVisible);
     window.addEventListener('focus', markReadWhenVisible);
+    window.addEventListener('online-users:here', handleOnlineUsersHere);
+    window.addEventListener('online-users:joining', handleOnlineUserJoining);
+    window.addEventListener('online-users:leaving', handleOnlineUserLeaving);
 
     if (window.Echo) {
         echoChannel = window.Echo.private(`chat.${props.chat.id}`)
@@ -282,8 +362,12 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+    window.clearInterval(statusTimer);
     document.removeEventListener('visibilitychange', markReadWhenVisible);
     window.removeEventListener('focus', markReadWhenVisible);
+    window.removeEventListener('online-users:here', handleOnlineUsersHere);
+    window.removeEventListener('online-users:joining', handleOnlineUserJoining);
+    window.removeEventListener('online-users:leaving', handleOnlineUserLeaving);
 
     if (window.Echo && echoChannel) {
         window.Echo.leave(`chat.${props.chat.id}`);
@@ -335,8 +419,16 @@ onBeforeUnmount(() => {
                                 <div class="truncate font-semibold text-gray-900">
                                     {{ chatTitle }}
                                 </div>
-                                <div class="text-sm text-gray-500">
-                                    {{ sortedMessages.length }} сообщений
+                                <div
+                                    class="inline-flex items-center gap-1.5 text-sm"
+                                    :class="companionIsOnline ? 'text-emerald-600' : 'text-gray-500'"
+                                >
+                                    <span
+                                        v-if="isDirectChat"
+                                        class="h-2 w-2 rounded-full"
+                                        :class="companionIsOnline ? 'bg-emerald-500' : 'bg-gray-300'"
+                                    />
+                                    {{ companionStatusText }}
                                 </div>
                             </div>
                         </div>
