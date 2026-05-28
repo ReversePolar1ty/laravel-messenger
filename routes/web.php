@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReadMessageController;
 use App\Http\Controllers\SendMessageController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +36,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/chats/{chat}', [ChatController::class, 'show'])->name('chats.show');
 
     Route::post('/chats/{chat}/messages', [SendMessageController::class, 'store'])->name('chats.messages.store');
+    Route::post('/chats/{chat}/read', [ReadMessageController::class, 'store'])->name('chats.read.store');
 });
 
 require __DIR__.'/auth.php';

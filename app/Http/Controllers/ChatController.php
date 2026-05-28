@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Chat;
+use App\Models\ChatRead;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -129,6 +130,7 @@ class ChatController extends Controller
         return Inertia::render('Chat/Show', [
             'chat' => $this->decorateChat($chat, $user->id, $chatConnection),
             'messages' => $messages,
+            'readStates' => $this->readStates($chat->id),
         ]);
     }
 
@@ -171,6 +173,14 @@ class ChatController extends Controller
         $otherUser = $participants->firstWhere('id', '!=', $currentUserId);
         $data = $chat->toArray();
         $data['participants'] = $participants;
+        $currentUserRead = ChatRead::query()
+            ->where('chat_id', $chat->id)
+            ->where('user_id', $currentUserId)
+            ->first();
+        $data['last_read_message_id'] = $currentUserRead?->last_read_message_id;
+        $data['has_unread'] = $chat->last_message_id
+            && (! $currentUserRead?->last_read_message_id
+                || strcmp((string) $currentUserRead->last_read_message_id, (string) $chat->last_message_id) < 0);
         $data['display_title'] = $chat->type === 'direct'
             ? ($otherUser->name ?? 'Личный чат')
             : ($chat->title ?? 'Групповой чат');
@@ -230,5 +240,18 @@ class ChatController extends Controller
             ->where('chat_id', $chatId)
             ->where('user_id', $userId)
             ->exists();
+    }
+
+    private function readStates(string $chatId)
+    {
+        return ChatRead::query()
+            ->where('chat_id', $chatId)
+            ->get(['chat_id', 'user_id', 'last_read_message_id', 'last_read_at'])
+            ->map(fn (ChatRead $read) => [
+                'chat_id' => $read->chat_id,
+                'user_id' => $read->user_id,
+                'last_read_message_id' => $read->last_read_message_id,
+                'last_read_at' => $read->last_read_at,
+            ]);
     }
 }

@@ -12,15 +12,21 @@ const props = defineProps({
         type: Array,
         default: () => [],
     },
+    readStates: {
+        type: Array,
+        default: () => [],
+    },
 });
 
 const page = usePage();
 const currentUser = computed(() => page.props.auth.user);
 const messageList = ref([...props.messages]);
+const readStateList = ref([...props.readStates]);
 const newMessage = ref('');
 const sending = ref(false);
 const error = ref('');
 const messagesContainer = ref(null);
+const readRequestMessageId = ref(null);
 
 const chatTitle = computed(() => props.chat.display_title || props.chat.title || 'Чат');
 const chatInitial = computed(() => chatTitle.value.trim().charAt(0).toUpperCase() || 'C');
@@ -43,6 +49,10 @@ const scrollToBottom = async () => {
 };
 
 const messageKey = (message, index) => message.id || message._id || `${message.created_at}-${index}`;
+
+const messageId = (message) => message?.id || message?._id;
+
+const isPageVisible = () => document.visibilityState === 'visible' && document.hasFocus();
 
 const isMine = (message) => {
     const senderId = message.sender_id || message.user_id;
@@ -85,14 +95,135 @@ const shouldShowDate = (message, index) => {
 };
 
 const pushMessage = (message) => {
-    const messageId = message.id || message._id;
+    const id = messageId(message);
 
-    if (messageId && messageList.value.some((item) => (item.id || item._id) === messageId)) {
+    if (id && messageList.value.some((item) => messageId(item) === id)) {
         return;
     }
 
     messageList.value.push(message);
     scrollToBottom();
+
+    if (!isMine(message)) {
+        markLatestMessageAsRead();
+    }
+};
+
+const latestMessageId = computed(() => messageId(sortedMessages.value[sortedMessages.value.length - 1]));
+
+const messagePositionById = computed(() => {
+    const positions = new Map();
+
+    sortedMessages.value.forEach((message, index) => {
+        const id = messageId(message);
+
+        if (id) {
+            positions.set(id, index);
+        }
+    });
+
+    return positions;
+});
+
+const otherParticipantIds = computed(() =>
+    (props.chat.participants || [])
+        .map((participant) => Number(participant.id))
+        .filter((id) => id !== Number(currentUser.value?.id)),
+);
+
+const readStateByUserId = computed(() => {
+    const states = new Map();
+
+    readStateList.value.forEach((state) => {
+        states.set(Number(state.user_id), state);
+    });
+
+    return states;
+});
+
+const upsertReadState = (state) => {
+    if (!state?.user_id || !state?.last_read_message_id) {
+        return;
+    }
+
+    const index = readStateList.value.findIndex((item) => Number(item.user_id) === Number(state.user_id));
+
+    if (index === -1) {
+        readStateList.value.push(state);
+        return;
+    }
+
+    readStateList.value[index] = {
+        ...readStateList.value[index],
+        ...state,
+    };
+};
+
+const isReadAtLeast = (readMessageId, targetMessageId) => {
+    if (!readMessageId || !targetMessageId) {
+        return false;
+    }
+
+    const readPosition = messagePositionById.value.get(readMessageId);
+    const targetPosition = messagePositionById.value.get(targetMessageId);
+
+    if (readPosition !== undefined && targetPosition !== undefined) {
+        return readPosition >= targetPosition;
+    }
+
+    return String(readMessageId) >= String(targetMessageId);
+};
+
+const isMessageReadByOthers = (message) => {
+    const id = messageId(message);
+
+    if (!id || !isMine(message) || otherParticipantIds.value.length === 0) {
+        return false;
+    }
+
+    return otherParticipantIds.value.every((participantId) => {
+        const readState = readStateByUserId.value.get(participantId);
+
+        return isReadAtLeast(readState?.last_read_message_id, id);
+    });
+};
+
+const markLatestMessageAsRead = async () => {
+    const id = latestMessageId.value;
+
+    if (!id || !isPageVisible() || readRequestMessageId.value === id) {
+        return;
+    }
+
+    readRequestMessageId.value = id;
+
+    try {
+        const response = await window.axios.post(route('chats.read.store', props.chat.id), {
+            last_read_message_id: id,
+        }, {
+            skipGlobalLoader: true,
+        });
+
+        if (response.data?.data) {
+            upsertReadState(response.data.data);
+        }
+    } catch {
+        // Reading state is best-effort; the next open or incoming message will retry.
+    } finally {
+        if (readRequestMessageId.value === id) {
+            readRequestMessageId.value = null;
+        }
+
+        if (isPageVisible() && latestMessageId.value && latestMessageId.value !== id) {
+            markLatestMessageAsRead();
+        }
+    }
+};
+
+const markReadWhenVisible = () => {
+    if (isPageVisible()) {
+        markLatestMessageAsRead();
+    }
 };
 
 const sendMessage = async () => {
@@ -113,6 +244,12 @@ const sendMessage = async () => {
         });
 
         pushMessage(response.data.data);
+        upsertReadState({
+            chat_id: props.chat.id,
+            user_id: currentUser.value?.id,
+            last_read_message_id: messageId(response.data.data),
+            last_read_at: new Date().toISOString(),
+        });
         newMessage.value = '';
     } catch (exception) {
         error.value = exception.response?.data?.message || 'Не удалось отправить сообщение.';
@@ -125,6 +262,9 @@ let echoChannel = null;
 
 onMounted(() => {
     scrollToBottom();
+    markReadWhenVisible();
+    document.addEventListener('visibilitychange', markReadWhenVisible);
+    window.addEventListener('focus', markReadWhenVisible);
 
     if (window.Echo) {
         echoChannel = window.Echo.private(`chat.${props.chat.id}`)
@@ -134,11 +274,17 @@ onMounted(() => {
                 if (message) {
                     pushMessage(message);
                 }
+            })
+            .listen('MessageRead', (event) => {
+                upsertReadState(event);
             });
     }
 });
 
 onBeforeUnmount(() => {
+    document.removeEventListener('visibilitychange', markReadWhenVisible);
+    window.removeEventListener('focus', markReadWhenVisible);
+
     if (window.Echo && echoChannel) {
         window.Echo.leave(`chat.${props.chat.id}`);
     }
@@ -234,10 +380,54 @@ onBeforeUnmount(() => {
                                                 {{ message.text }}
                                             </p>
                                             <div
-                                                class="mt-1 text-right text-xs"
+                                                class="mt-1 flex items-center justify-end gap-2 text-xs"
                                                 :class="isMine(message) ? 'text-gray-300' : 'text-gray-400'"
                                             >
-                                                {{ formatTime(message.created_at) }}
+                                                <span>{{ formatTime(message.created_at) }}</span>
+                                                <span
+                                                    v-if="isMine(message)"
+                                                    class="inline-flex items-center"
+                                                    :aria-label="isMessageReadByOthers(message) ? 'Прочитано' : 'Отправлено'"
+                                                    :title="isMessageReadByOthers(message) ? 'Прочитано' : 'Отправлено'"
+                                                >
+                                                    <svg
+                                                        v-if="isMessageReadByOthers(message)"
+                                                        class="h-4 w-4"
+                                                        viewBox="0 0 20 20"
+                                                        fill="none"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <path
+                                                            d="M2.5 10.5 6 14l7.5-8"
+                                                            stroke="currentColor"
+                                                            stroke-width="1.8"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                        />
+                                                        <path
+                                                            d="M8 13.5 9.5 15 17.5 6"
+                                                            stroke="currentColor"
+                                                            stroke-width="1.8"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                        />
+                                                    </svg>
+                                                    <svg
+                                                        v-else
+                                                        class="h-4 w-4"
+                                                        viewBox="0 0 20 20"
+                                                        fill="none"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <path
+                                                            d="M3.5 10.5 7.5 14.5 16.5 5.5"
+                                                            stroke="currentColor"
+                                                            stroke-width="1.8"
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                        />
+                                                    </svg>
+                                                </span>
                                             </div>
                                         </div>
                                     </div>

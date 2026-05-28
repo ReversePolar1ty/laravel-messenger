@@ -256,6 +256,7 @@ const startDirectChat = (user) => {
                             :key="chat.id"
                             :href="route('chats.show', chat.id)"
                             class="flex items-center gap-4 px-4 py-4 transition hover:bg-gray-50 sm:px-6"
+                            :class="chat.has_unread ? 'bg-gray-50' : ''"
                         >
                             <img
                                 v-if="chat.avatar_url"
@@ -275,11 +276,21 @@ const startDirectChat = (user) => {
                                     <h3 class="truncate text-sm font-semibold text-gray-900">
                                         {{ chatTitle(chat) }}
                                     </h3>
-                                    <time class="shrink-0 text-xs text-gray-500">
-                                        {{ formatLastMessageTime(chat.last_message_at) }}
-                                    </time>
+                                    <div class="flex shrink-0 items-center gap-2">
+                                        <span
+                                            v-if="chat.has_unread"
+                                            class="h-2 w-2 rounded-full bg-gray-900"
+                                            aria-label="Unread messages"
+                                        />
+                                        <time class="text-xs text-gray-500">
+                                            {{ formatLastMessageTime(chat.last_message_at) }}
+                                        </time>
+                                    </div>
                                 </div>
-                                <p class="mt-1 truncate text-sm text-gray-500">
+                                <p
+                                    class="mt-1 truncate text-sm"
+                                    :class="chat.has_unread ? 'font-semibold text-gray-900' : 'text-gray-500'"
+                                >
                                     {{ chat.last_message_text || 'Сообщений пока нет' }}
                                 </p>
                             </div>
