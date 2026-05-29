@@ -13,9 +13,10 @@ const isChatsSection = computed(() => route().current('chats.*'));
 
 let onlineChannel = null;
 let heartbeatTimer = null;
+let isLoggingOut = false;
 
 const heartbeat = async () => {
-    if (!isChatsSection.value) {
+    if (isLoggingOut || !isChatsSection.value) {
         return;
     }
 
@@ -30,6 +31,21 @@ const heartbeat = async () => {
 
 const emitOnlineEvent = (name, detail) => {
     window.dispatchEvent(new CustomEvent(name, { detail }));
+};
+
+const stopOnlinePresence = () => {
+    window.clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+
+    if (window.Echo && onlineChannel) {
+        window.Echo.leave('online');
+        onlineChannel = null;
+    }
+};
+
+const beginLogout = () => {
+    isLoggingOut = true;
+    stopOnlinePresence();
 };
 
 onMounted(() => {
@@ -49,11 +65,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-    window.clearInterval(heartbeatTimer);
-
-    if (window.Echo && onlineChannel) {
-        window.Echo.leave('online');
-    }
+    stopOnlinePresence();
 });
 </script>
 
@@ -127,6 +139,7 @@ onBeforeUnmount(() => {
                                             :href="route('logout')"
                                             method="post"
                                             as="button"
+                                            @click="beginLogout"
                                         >
                                             Log Out
                                         </DropdownLink>
@@ -218,6 +231,7 @@ onBeforeUnmount(() => {
                                 :href="route('logout')"
                                 method="post"
                                 as="button"
+                                @click="beginLogout"
                             >
                                 Log Out
                             </ResponsiveNavLink>

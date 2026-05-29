@@ -265,22 +265,12 @@ const refreshCompanionStatus = async () => {
     }
 };
 
-const setCompanionOnline = (user) => {
-    if (Number(user?.id) === Number(companion.value?.id)) {
-        companionStatus.value = {
-            status: 'online',
-            last_seen: null,
-        };
-    }
-};
-
 const setCompanionOffline = (user) => {
     if (Number(user?.id) === Number(companion.value?.id)) {
         companionStatus.value = {
             status: 'offline',
             last_seen: 'только что',
         };
-        refreshCompanionStatus();
     }
 };
 
@@ -288,12 +278,14 @@ const handleOnlineUsersHere = (event) => {
     const users = event.detail || [];
 
     if (users.some((user) => Number(user.id) === Number(companion.value?.id))) {
-        setCompanionOnline(companion.value);
+        refreshCompanionStatus();
     }
 };
 
 const handleOnlineUserJoining = (event) => {
-    setCompanionOnline(event.detail);
+    if (Number(event.detail?.id) === Number(companion.value?.id)) {
+        refreshCompanionStatus();
+    }
 };
 
 const handleOnlineUserLeaving = (event) => {
