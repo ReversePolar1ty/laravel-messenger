@@ -1,7 +1,7 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
     chats: {
@@ -20,12 +20,22 @@ const props = defineProps({
     },
 });
 
+const page = usePage();
+const currentUser = computed(() => page.props.auth.user);
+const chatList = ref([...props.chats]);
 const search = ref(props.filters.search || '');
 const searchUsers = ref([...props.users]);
 const isSearching = ref(false);
+const isRefreshingChats = ref(false);
 const startingUserId = ref(null);
 let searchTimeout = null;
 let searchController = null;
+let chatRefreshController = null;
+let echoChannel = null;
+
+watch(() => props.chats, (chats) => {
+    chatList.value = [...chats];
+});
 
 watch(search, (value) => {
     clearTimeout(searchTimeout);
@@ -38,6 +48,18 @@ watch(search, (value) => {
 onBeforeUnmount(() => {
     clearTimeout(searchTimeout);
     searchController?.abort();
+    chatRefreshController?.abort();
+
+    if (window.Echo && echoChannel && currentUser.value?.id) {
+        window.Echo.leave(`user.${currentUser.value.id}`);
+    }
+});
+
+onMounted(() => {
+    if (window.Echo && currentUser.value?.id) {
+        echoChannel = window.Echo.private(`user.${currentUser.value.id}`)
+            .listen('ChatListUpdated', refreshChats);
+    }
 });
 
 const fetchSearchResults = async (value) => {
@@ -92,14 +114,40 @@ const updateSearchUrl = (query) => {
     window.history.replaceState(window.history.state, '', url);
 };
 
+const refreshChats = async () => {
+    chatRefreshController?.abort();
+
+    const controller = new AbortController();
+    chatRefreshController = controller;
+    isRefreshingChats.value = true;
+
+    try {
+        const response = await window.axios.get(route('chats.items'), {
+            signal: controller.signal,
+            skipGlobalLoader: true,
+        });
+
+        chatList.value = response.data.chats || [];
+    } catch (error) {
+        if (error.code !== 'ERR_CANCELED') {
+            console.error('Failed to refresh chat list.', error);
+        }
+    } finally {
+        if (chatRefreshController === controller) {
+            isRefreshingChats.value = false;
+            chatRefreshController = null;
+        }
+    }
+};
+
 const filteredChats = computed(() => {
     const query = search.value.trim().toLowerCase();
 
     if (!query) {
-        return props.chats;
+        return chatList.value;
     }
 
-    return props.chats.filter((chat) => {
+    return chatList.value.filter((chat) => {
         const title = chatTitle(chat);
         const lastMessage = chat.last_message_text || '';
 
@@ -158,7 +206,7 @@ const startDirectChat = (user) => {
                         Чаты
                     </h2>
                     <p class="mt-1 text-sm text-gray-500">
-                        {{ chats.length }} активных диалогов
+                        {{ chatList.length }} активных диалогов
                     </p>
                 </div>
                 <div class="relative w-full sm:w-80">
@@ -233,9 +281,16 @@ const startDirectChat = (user) => {
 
                 <section class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                     <div class="border-b border-gray-100 px-4 py-3 sm:px-6">
-                        <h3 class="text-sm font-semibold text-gray-900">
-                            Диалоги
-                        </h3>
+                        <div class="flex items-center justify-between gap-3">
+                            <h3 class="text-sm font-semibold text-gray-900">
+                                Диалоги
+                            </h3>
+                            <span
+                                v-if="isRefreshingChats"
+                                class="h-4 w-4 animate-spin rounded-full border-2 border-gray-200 border-t-gray-700"
+                                aria-label="Обновление чатов"
+                            />
+                        </div>
                     </div>
 
                     <div

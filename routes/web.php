@@ -30,6 +30,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/users/{user}/status', [UserStatusController::class, 'show'])->name('users.status.show');
 
     Route::get('/chats', [ChatController::class, 'index'])->name('chats.index');
+    Route::get('/chats/items', [ChatController::class, 'items'])->name('chats.items');
     Route::get('/chats/search', [ChatController::class, 'search'])->name('chats.search');
     Route::post('/chats/direct', [ChatController::class, 'store'])->name('chats.direct.store');
 

@@ -13,6 +13,10 @@ Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
         ->exists();
 });
 
+Broadcast::channel('user.{userId}', function (User $user, int $userId) {
+    return (int) $user->id === $userId;
+});
+
 Broadcast::channel('online', function (User $user) {
     // Если пользователь авторизован, возвращаем массив его данных для фронтенда
     return [

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ChatListUpdated;
 use App\Models\Chat;
 use App\Models\ChatRead;
 use App\Models\Message;
 use App\Models\User;
 use App\Services\UserStatusService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -25,13 +27,7 @@ class ChatController extends Controller
         $chatConnection = (new Chat())->getConnectionName();
 
         // Показываем только чаты, где пользователь есть в таблице участников.
-        $chats = Chat::query()
-            ->whereIn('id', DB::connection($chatConnection)->table('chat_participants')
-                ->select('chat_id')
-                ->where('user_id', $user->id))
-            ->orderByDesc('last_message_at')
-            ->orderByDesc('created_at')
-            ->get();
+        $chats = $this->chatsForUser($user->id, $chatConnection);
 
         $users = collect();
 
@@ -60,6 +56,20 @@ class ChatController extends Controller
             'filters' => [
                 'search' => $search,
             ],
+        ]);
+    }
+
+    public function items(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $chatConnection = (new Chat())->getConnectionName();
+
+        return response()->json([
+            'chats' => $this->decorateChats(
+                $this->chatsForUser($user->id, $chatConnection),
+                $user->id,
+                $chatConnection
+            ),
         ]);
     }
 
@@ -114,6 +124,9 @@ class ChatController extends Controller
             return $chat;
         });
 
+        broadcast(new ChatListUpdated($user->id));
+        broadcast(new ChatListUpdated($targetUserId));
+
         return redirect()->route('chats.show', $chat);
     }
 
@@ -156,6 +169,17 @@ class ChatController extends Controller
     {
         // Добавляем к каждому чату участников и понятное название для фронтенда.
         return $chats->map(fn (Chat $chat) => $this->decorateChat($chat, $currentUserId, $chatConnection));
+    }
+
+    private function chatsForUser(int $userId, string $chatConnection)
+    {
+        return Chat::query()
+            ->whereIn('id', DB::connection($chatConnection)->table('chat_participants')
+                ->select('chat_id')
+                ->where('user_id', $userId))
+            ->orderByDesc('last_message_at')
+            ->orderByDesc('created_at')
+            ->get();
     }
 
     private function decorateChat(Chat $chat, int $currentUserId, string $chatConnection, bool $withStatus = false): array

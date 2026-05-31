@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\ChatListUpdated;
 use App\Events\MessageRead;
 use App\Models\Chat;
 use App\Models\ChatRead;
@@ -69,6 +70,7 @@ class ReadMessageController extends Controller
             $lastReadMessageId,
             $read->last_read_at->toISOString(),
         ))->toOthers();
+        broadcast(new ChatListUpdated($user->id));
 
         return response()->json([
             'success' => true,
