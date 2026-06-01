@@ -15,8 +15,14 @@ use Inertia\Inertia;
 
 class ChatController extends Controller
 {
+    /**
+     * Получает сервис статусов, чтобы добавлять online/offline данные к direct-чатам.
+     */
     public function __construct(private readonly UserStatusService $statusService) {}
 
+    /**
+     * Показывает список чатов текущего пользователя и, при наличии поискового запроса, результаты поиска людей.
+     */
     public function index()
     {
         // Текущий пользователь нужен для списка его чатов и для исключения его из поиска людей.
@@ -45,6 +51,9 @@ class ChatController extends Controller
         ]);
     }
 
+    /**
+     * Возвращает JSON-результаты поиска пользователей для живого поиска на странице чатов.
+     */
     public function search(Request $request)
     {
         $user = $request->user();
@@ -59,6 +68,9 @@ class ChatController extends Controller
         ]);
     }
 
+    /**
+     * Возвращает актуальный список чатов для обновления открытой вкладки по WebSocket-событию.
+     */
     public function items(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -73,11 +85,17 @@ class ChatController extends Controller
         ]);
     }
 
+    /**
+     * Зарезервировано под страницу создания чата; сейчас direct-чаты создаются через store().
+     */
     public function create()
     {
         //
     }
 
+    /**
+     * Создаёт личный чат с выбранным пользователем или открывает уже существующий direct-чат.
+     */
     public function store(Request $request)
     {
         // Для личного чата пока нужен только ID второго пользователя.
@@ -106,6 +124,7 @@ class ChatController extends Controller
                 'creator_id' => $user->id,
             ]);
 
+            // Участников пишем вручную, потому что таблица участников живёт в MariaDB рядом с чатами.
             DB::connection($chatConnection)->table('chat_participants')->insert([
                 [
                     'chat_id' => $chat->id,
@@ -124,12 +143,16 @@ class ChatController extends Controller
             return $chat;
         });
 
+        // У обеих сторон может быть открыта вкладка списка чатов, поэтому обновляем оба приватных канала.
         broadcast(new ChatListUpdated($user->id));
         broadcast(new ChatListUpdated($targetUserId));
 
         return redirect()->route('chats.show', $chat);
     }
 
+    /**
+     * Показывает конкретный чат: метаданные из MariaDB, сообщения из MongoDB и состояния прочтения.
+     */
     public function show(Chat $chat)
     {
         $user = request()->user();
@@ -150,27 +173,42 @@ class ChatController extends Controller
         ]);
     }
 
+    /**
+     * Зарезервировано под форму редактирования чата; пока редактирование не реализовано.
+     */
     public function edit(Chat $chat)
     {
         //
     }
 
+    /**
+     * Зарезервировано под обновление настроек чата; пока изменение чатов не реализовано.
+     */
     public function update(Request $request, Chat $chat)
     {
         //
     }
 
+    /**
+     * Зарезервировано под удаление/архивацию чата; пока удаление не реализовано.
+     */
     public function destroy(Chat $chat)
     {
         //
     }
 
+    /**
+     * Преобразует коллекцию моделей чатов в массивы, готовые для Vue-компонентов.
+     */
     private function decorateChats($chats, int $currentUserId, string $chatConnection)
     {
         // Добавляем к каждому чату участников и понятное название для фронтенда.
         return $chats->map(fn (Chat $chat) => $this->decorateChat($chat, $currentUserId, $chatConnection));
     }
 
+    /**
+     * Получает чаты, где пользователь является участником, с сортировкой по последней активности.
+     */
     private function chatsForUser(int $userId, string $chatConnection)
     {
         return Chat::query()
@@ -182,6 +220,9 @@ class ChatController extends Controller
             ->get();
     }
 
+    /**
+     * Дополняет чат участниками, отображаемым названием, unread-флагом и опциональным статусом собеседника.
+     */
     private function decorateChat(Chat $chat, int $currentUserId, string $chatConnection, bool $withStatus = false): array
     {
         // Участники нужны фронтенду и для отображения direct-чата именем собеседника.
@@ -205,6 +246,7 @@ class ChatController extends Controller
             ->where('user_id', $currentUserId)
             ->first();
         $data['last_read_message_id'] = $currentUserRead?->last_read_message_id;
+        // Для списка чатов unread считается сравнением последнего сообщения чата с последним прочитанным ID пользователя.
         $data['has_unread'] = $chat->last_message_id
             && (! $currentUserRead?->last_read_message_id
                 || strcmp((string) $currentUserRead->last_read_message_id, (string) $chat->last_message_id) < 0);
@@ -219,6 +261,9 @@ class ChatController extends Controller
         return $data;
     }
 
+    /**
+     * Ищет пользователей по имени и добавляет chat_id, если direct-чат с найденным пользователем уже есть.
+     */
     private function searchUsers(string $search, string $chatConnection, int $currentUserId)
     {
         if ($search === '') {
@@ -241,6 +286,9 @@ class ChatController extends Controller
             });
     }
 
+    /**
+     * Находит существующий direct-чат между двумя пользователями, чтобы не создавать дубликаты.
+     */
     private function findDirectChatId(string $chatConnection, int $firstUserId, int $secondUserId): ?string
     {
         // Сначала ищем chat_id, где есть оба пользователя.
@@ -263,6 +311,9 @@ class ChatController extends Controller
             ->value('id');
     }
 
+    /**
+     * Проверяет, состоит ли пользователь в чате.
+     */
     private function isParticipant(string $chatConnection, string $chatId, int $userId): bool
     {
         // Общая проверка доступа к чату по таблице участников.
@@ -273,6 +324,9 @@ class ChatController extends Controller
             ->exists();
     }
 
+    /**
+     * Возвращает состояния прочтения всех участников для отображения статуса сообщений в открытом чате.
+     */
     private function readStates(string $chatId)
     {
         return ChatRead::query()

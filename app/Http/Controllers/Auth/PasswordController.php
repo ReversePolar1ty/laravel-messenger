@@ -11,7 +11,7 @@ use Illuminate\Validation\Rules\Password;
 class PasswordController extends Controller
 {
     /**
-     * Update the user's password.
+     * Обновляет пароль авторизованного пользователя после проверки текущего пароля.
      */
     public function update(Request $request): RedirectResponse
     {
@@ -20,6 +20,7 @@ class PasswordController extends Controller
             'password' => ['required', Password::defaults(), 'confirmed'],
         ]);
 
+        // Храним только hash пароля; исходный пароль из запроса не сохраняется.
         $request->user()->update([
             'password' => Hash::make($validated['password']),
         ]);

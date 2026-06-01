@@ -15,6 +15,9 @@ use Illuminate\Support\Str;
 
 class SendMessageController extends Controller
 {
+    /**
+     * Создаёт сообщение, обновляет последний текст чата и рассылает события открытым вкладкам участников.
+     */
     public function store(SendMessageRequest $request): JsonResponse
     {
         // SendMessageRequest уже проверил данные и то, что пользователь состоит в чате.
@@ -41,7 +44,7 @@ class SendMessageController extends Controller
             'last_message_at' => $message->created_at,
         ]);
 
-        // Транслируем событие всем участникам чата, кроме отправителя.
+        // Отправитель сразу считается прочитавшим своё сообщение.
         $read = ChatRead::query()->updateOrCreate(
             [
                 'chat_id' => $chat->id,
@@ -53,6 +56,7 @@ class SendMessageController extends Controller
             ]
         );
 
+        // Участники с открытым чатом увидят обновление read-state отправителя.
         broadcast(new MessageRead(
             $chat->id,
             $user->id,
@@ -60,8 +64,10 @@ class SendMessageController extends Controller
             $read->last_read_at->toISOString(),
         ))->toOthers();
 
+        // Само сообщение отправляем всем участникам чата, кроме текущего HTTP-соединения отправителя.
         broadcast(new MessageSent($message->toArray(), $validated['chat_id']))->toOthers();
 
+        // Список чатов должен обновиться у всех участников: порядок, последний текст и unread-индикаторы.
         DB::connection((new Chat())->getConnectionName())
             ->table('chat_participants')
             ->where('chat_id', $chat->id)

@@ -14,10 +14,13 @@ use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
 {
+    /**
+     * Получает сервис статусов, чтобы синхронизировать online/offline состояние при login/logout.
+     */
     public function __construct(private readonly UserStatusService $statusService) {}
 
     /**
-     * Display the login view.
+     * Показывает страницу входа и передаёт флаги для UI восстановления пароля.
      */
     public function create(): Response
     {
@@ -28,14 +31,16 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
-     * Handle an incoming authentication request.
+     * Обрабатывает вход: проверяет логин/пароль, обновляет сессию и отмечает пользователя онлайн.
      */
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
 
+        // После успешного логина меняем ID сессии, чтобы закрыть session fixation.
         $request->session()->regenerate();
 
+        // Снимаем блокировку logout и сразу продлеваем online-статус пользователя.
         $this->statusService->clearLogoutBlock($request->user()->id);
         $this->statusService->ping($request->user()->id);
 
@@ -43,7 +48,7 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
-     * Destroy an authenticated session.
+     * Завершает сессию пользователя и переводит его в offline.
      */
     public function destroy(Request $request): RedirectResponse
     {
@@ -53,6 +58,7 @@ class AuthenticatedSessionController extends Controller
 
         Auth::guard('web')->logout();
 
+        // Полностью инвалидируем старую сессию и CSRF-токен после logout.
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();

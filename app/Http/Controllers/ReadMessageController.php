@@ -13,11 +13,15 @@ use Illuminate\Support\Facades\DB;
 
 class ReadMessageController extends Controller
 {
+    /**
+     * Сохраняет последнюю прочитанную позицию пользователя в чате и рассылает обновления по WebSocket.
+     */
     public function store(Request $request, Chat $chat): JsonResponse
     {
         $user = $request->user();
         $chatConnection = (new Chat())->getConnectionName();
 
+        // UUID чата приходит из маршрута, поэтому доступ проверяем по таблице участников, а не доверяем URL.
         abort_unless(
             DB::connection($chatConnection)
                 ->table('chat_participants')
@@ -33,6 +37,7 @@ class ReadMessageController extends Controller
 
         $message = $this->resolveMessage($chat->id, $validated['last_read_message_id'] ?? null);
 
+        // Если в чате ещё нет сообщений или ID не найден, менять read-state нечего.
         if (! $message) {
             return response()->json([
                 'success' => true,
@@ -46,6 +51,7 @@ class ReadMessageController extends Controller
             ->where('user_id', $user->id)
             ->first();
 
+        // Не откатываем прогресс чтения назад, если клиент прислал более старое сообщение.
         if ($read && $read->last_read_message_id && strcmp((string) $read->last_read_message_id, $lastReadMessageId) >= 0) {
             return response()->json([
                 'success' => true,
@@ -64,6 +70,7 @@ class ReadMessageController extends Controller
             ]
         );
 
+        // MessageRead нужен открытой странице чата, ChatListUpdated - открытому списку чатов текущего пользователя.
         broadcast(new MessageRead(
             $chat->id,
             $user->id,
@@ -78,6 +85,9 @@ class ReadMessageController extends Controller
         ]);
     }
 
+    /**
+     * Находит сообщение, до которого пользователь дочитал; без ID берём последнее сообщение чата.
+     */
     private function resolveMessage(string $chatId, ?string $messageId): ?Message
     {
         if ($messageId) {

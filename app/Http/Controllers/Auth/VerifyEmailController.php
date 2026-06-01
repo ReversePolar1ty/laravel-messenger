@@ -10,7 +10,7 @@ use Illuminate\Http\RedirectResponse;
 class VerifyEmailController extends Controller
 {
     /**
-     * Mark the authenticated user's email address as verified.
+     * Подтверждает email пользователя по подписанной ссылке в письме.
      */
     public function __invoke(EmailVerificationRequest $request): RedirectResponse
     {
@@ -18,6 +18,7 @@ class VerifyEmailController extends Controller
             return redirect()->intended(route('chats.index', absolute: false).'?verified=1');
         }
 
+        // markEmailAsVerified вернёт true только если статус реально изменился.
         if ($request->user()->markEmailAsVerified()) {
             event(new Verified($request->user()));
         }

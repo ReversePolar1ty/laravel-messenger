@@ -13,7 +13,7 @@ use Inertia\Response;
 class ConfirmablePasswordController extends Controller
 {
     /**
-     * Show the confirm password view.
+     * Показывает форму повторного ввода пароля для защищённых действий.
      */
     public function show(): Response
     {
@@ -21,7 +21,7 @@ class ConfirmablePasswordController extends Controller
     }
 
     /**
-     * Confirm the user's password.
+     * Проверяет пароль текущего пользователя и запоминает время подтверждения в сессии.
      */
     public function store(Request $request): RedirectResponse
     {
@@ -29,11 +29,13 @@ class ConfirmablePasswordController extends Controller
             'email' => $request->user()->email,
             'password' => $request->password,
         ])) {
+            // Ошибку привязываем к полю password, чтобы форма показала её рядом с вводом пароля.
             throw ValidationException::withMessages([
                 'password' => __('auth.password'),
             ]);
         }
 
+        // Laravel middleware password.confirm смотрит именно на этот timestamp.
         $request->session()->put('auth.password_confirmed_at', time());
 
         return redirect()->intended(route('chats.index', absolute: false));

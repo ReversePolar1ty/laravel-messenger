@@ -9,10 +9,13 @@ use Illuminate\Http\Request;
 
 class UserStatusController extends Controller
 {
+    /**
+     * Получает сервис, который хранит и вычисляет online/offline состояние пользователей.
+     */
     public function __construct(protected UserStatusService $statusService) {}
 
     /**
-     * Обновление статуса "Онлайн" (Heartbeat)
+     * Обновляет online-статус текущего пользователя по периодическому heartbeat-запросу.
      */
     public function heartbeat(Request $request): JsonResponse
     {
@@ -22,7 +25,7 @@ class UserStatusController extends Controller
     }
 
     /**
-     * Явное переключение в офлайн (при выходе или закрытии вкладки)
+     * Явно переводит пользователя в offline при logout или закрытии вкладки.
      */
     public function offline(Request $request): JsonResponse
     {
@@ -31,6 +34,9 @@ class UserStatusController extends Controller
         return response()->json(['status' => 'success']);
     }
 
+    /**
+     * Возвращает текущий статус конкретного пользователя для UI чата.
+     */
     public function show(User $user): JsonResponse
     {
         return response()->json($this->statusService->getStatus($user->id));
