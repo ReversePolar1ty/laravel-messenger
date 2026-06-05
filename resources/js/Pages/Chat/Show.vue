@@ -75,6 +75,36 @@ const messageKey = (message, index) => message.id || message._id || `${message.c
 
 const messageId = (message) => message?.id || message?._id;
 
+const scrollToMessage = async (id) => {
+    await nextTick();
+
+    if (!messagesContainer.value || !id) {
+        return false;
+    }
+
+    const messageElement = [...messagesContainer.value.querySelectorAll('[data-message-id]')]
+        .find((element) => element.dataset.messageId === String(id));
+
+    if (!messageElement) {
+        return false;
+    }
+
+    const containerRect = messagesContainer.value.getBoundingClientRect();
+    const messageRect = messageElement.getBoundingClientRect();
+
+    messagesContainer.value.scrollTop += messageRect.top - containerRect.top - 16;
+
+    return true;
+};
+
+const scrollToInitialPosition = async () => {
+    if (await scrollToMessage(firstUnreadMessageId.value)) {
+        return;
+    }
+
+    scrollToBottom();
+};
+
 const isPageVisible = () => document.visibilityState === 'visible' && document.hasFocus();
 
 const isMine = (message) => {
@@ -147,6 +177,33 @@ const messagePositionById = computed(() => {
 
     return positions;
 });
+
+const firstUnreadMessageId = computed(() => {
+    const lastReadMessageId = props.chat.last_read_message_id;
+
+    if (sortedMessages.value.length === 0) {
+        return null;
+    }
+
+    const unreadMessages = !lastReadMessageId
+        ? sortedMessages.value
+        : sortedMessages.value.filter((message) => {
+            const lastReadPosition = messagePositionById.value.get(lastReadMessageId);
+            const messagePosition = messagePositionById.value.get(messageId(message));
+
+            if (lastReadPosition !== undefined && messagePosition !== undefined) {
+                return messagePosition > lastReadPosition;
+            }
+
+            return String(messageId(message)) > String(lastReadMessageId);
+        });
+
+    return messageId(unreadMessages.find((message) => !isMine(message)));
+});
+
+const isFirstUnreadMessage = (message) => (
+    firstUnreadMessageId.value && String(messageId(message)) === String(firstUnreadMessageId.value)
+);
 
 const otherParticipantIds = computed(() =>
     (props.chat.participants || [])
@@ -328,7 +385,7 @@ let echoChannel = null;
 let statusTimer = null;
 
 onMounted(() => {
-    scrollToBottom();
+    scrollToInitialPosition();
     markReadWhenVisible();
     refreshCompanionStatus();
     statusTimer = window.setInterval(refreshCompanionStatus, 15000);
@@ -451,8 +508,20 @@ onBeforeUnmount(() => {
                                     </div>
 
                                     <div
+                                        v-if="isFirstUnreadMessage(message)"
+                                        class="flex items-center gap-3"
+                                    >
+                                        <div class="h-px flex-1 bg-emerald-200" />
+                                        <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                                            New messages
+                                        </span>
+                                        <div class="h-px flex-1 bg-emerald-200" />
+                                    </div>
+
+                                    <div
                                         class="flex"
                                         :class="isMine(message) ? 'justify-end' : 'justify-start'"
+                                        :data-message-id="messageId(message)"
                                     >
                                         <div
                                             class="max-w-[82%] rounded-lg px-4 py-2 shadow-sm sm:max-w-[68%]"
