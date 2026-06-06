@@ -1,3 +1,72 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    :root {
+        --ink: #f4f1ec;
+        --muted: #a9a39c;
+        --ember: #ff4f2f;
+        --ember-soft: #ff6a3d;
+        --charcoal: #1f2328;
+        --charcoal-deep: #181b21;
+        --charcoal-panel: #20242a;
+        --line: #3a3f47;
+    }
+
+    html {
+        background: var(--charcoal);
+    }
+
+    body {
+        min-height: 100vh;
+        background:
+            radial-gradient(circle at 85% 85%, rgba(255, 79, 47, 0.08), transparent 28rem),
+            linear-gradient(180deg, #1b1f25 0%, var(--charcoal) 42%, #22272e 100%);
+        color: var(--ink);
+        font-family: "JetBrains Mono", "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    }
+
+    ::selection {
+        background: var(--ember);
+        color: #111318;
+    }
+
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #1a1d23;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #6f716e;
+        border: 2px solid #1a1d23;
+        border-radius: 999px;
+    }
+}
+
+@layer components {
+    .messenger-panel {
+        border: 1px solid rgba(244, 241, 236, 0.08);
+        background: linear-gradient(180deg, rgba(27, 30, 37, 0.98), rgba(24, 27, 33, 0.98));
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+    }
+
+    .messenger-field {
+        border-color: rgba(244, 241, 236, 0.18);
+        background-color: rgba(24, 27, 33, 0.9);
+        color: var(--ink);
+    }
+
+    .messenger-field::placeholder {
+        color: rgba(169, 163, 156, 0.78);
+    }
+
+    .messenger-field:focus {
+        border-color: var(--ember);
+        box-shadow: 0 0 0 1px var(--ember);
+    }
+}
