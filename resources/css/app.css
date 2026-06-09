@@ -24,7 +24,7 @@
             radial-gradient(circle at 85% 85%, rgba(255, 79, 47, 0.08), transparent 28rem),
             linear-gradient(180deg, #1b1f25 0%, var(--charcoal) 42%, #22272e 100%);
         color: var(--ink);
-        font-family: "JetBrains Mono", "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+        font-family: "Roboto", ui-sans-serif, system-ui, sans-serif;
     }
 
     ::selection {

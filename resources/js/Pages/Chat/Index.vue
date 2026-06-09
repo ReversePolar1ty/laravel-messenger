@@ -331,7 +331,7 @@ const startDirectChat = (user) => {
 
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center justify-between gap-3">
-                                    <h3 class="truncate text-base font-black uppercase tracking-[-0.03em] text-[#f4f1ec]">
+                                    <h3 class="truncate text-base font-normal tracking-[-0.03em] text-[#f4f1ec]">
                                         {{ chatTitle(chat) }}
                                     </h3>
                                     <div class="flex shrink-0 items-center gap-2">

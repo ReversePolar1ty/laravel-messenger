@@ -466,7 +466,7 @@ onBeforeUnmount(() => {
                                 {{ chatInitial }}
                             </div>
                             <div class="min-w-0">
-                                <div class="truncate text-base font-black uppercase tracking-[-0.03em] text-[#f4f1ec]">
+                                <div class="truncate text-base font-normal tracking-[-0.03em] text-[#f4f1ec]">
                                     {{ chatTitle }}
                                 </div>
                                 <div
@@ -610,7 +610,7 @@ onBeforeUnmount(() => {
                                 />
                                 <button
                                     type="submit"
-                                    class="inline-flex h-12 shrink-0 items-center rounded-lg bg-[#ff4f2f] px-5 text-sm font-black uppercase tracking-[0.08em] text-[#171a20] transition hover:bg-[#ff6a3d] disabled:cursor-not-allowed disabled:opacity-60"
+                                    class="inline-flex h-12 shrink-0 items-center rounded-lg bg-[#ff4f2f] px-5 text-sm font-normal uppercase tracking-[0.08em] text-[#171a20] transition hover:bg-[#ff6a3d] disabled:cursor-not-allowed disabled:opacity-60"
                                     :disabled="sending || newMessage.trim().length === 0"
                                 >
                                     {{ sending ? 'Отправка' : 'Отправить' }}
