@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\User;
 
+use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\UserStatusService;
 use Illuminate\Http\JsonResponse;
@@ -9,13 +10,10 @@ use Illuminate\Http\Request;
 
 class UserStatusController extends Controller
 {
-    /**
-     * Получает сервис, который хранит и вычисляет online/offline состояние пользователей.
-     */
-    public function __construct(protected UserStatusService $statusService) {}
+    public function __construct(private readonly UserStatusService $statusService) {}
 
     /**
-     * Обновляет online-статус текущего пользователя по периодическому heartbeat-запросу.
+     * Обновляет online-статус текущего пользователя по heartbeat-запросу.
      */
     public function heartbeat(Request $request): JsonResponse
     {
@@ -25,7 +23,7 @@ class UserStatusController extends Controller
     }
 
     /**
-     * Явно переводит пользователя в offline при logout или закрытии вкладки.
+     * Принудительно переводит текущего пользователя в offline.
      */
     public function offline(Request $request): JsonResponse
     {
@@ -35,7 +33,7 @@ class UserStatusController extends Controller
     }
 
     /**
-     * Возвращает текущий статус конкретного пользователя для UI чата.
+     * Возвращает вычисленный статус конкретного пользователя для интерфейса чата.
      */
     public function show(User $user): JsonResponse
     {

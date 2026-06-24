@@ -1,10 +1,14 @@
 <?php
 
-use App\Http\Controllers\ChatController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ReadMessageController;
-use App\Http\Controllers\SendMessageController;
-use App\Http\Controllers\UserStatusController;
+use App\Http\Controllers\Chat\ChatIndexController;
+use App\Http\Controllers\Chat\ChatItemsController;
+use App\Http\Controllers\Chat\ChatSearchController;
+use App\Http\Controllers\Chat\ChatShowController;
+use App\Http\Controllers\Chat\DirectChatController;
+use App\Http\Controllers\Message\ReadMessageController;
+use App\Http\Controllers\Message\SendMessageController;
+use App\Http\Controllers\Profile\ProfileController;
+use App\Http\Controllers\User\UserStatusController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -29,13 +33,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/users/status/offline', [UserStatusController::class, 'offline'])->name('users.status.offline');
     Route::get('/users/{user}/status', [UserStatusController::class, 'show'])->name('users.status.show');
 
-    Route::get('/chats', [ChatController::class, 'index'])->name('chats.index');
-    Route::get('/chats/items', [ChatController::class, 'items'])->name('chats.items');
-    Route::get('/chats/search', [ChatController::class, 'search'])->name('chats.search');
-    Route::post('/chats/direct', [ChatController::class, 'store'])->name('chats.direct.store');
+    Route::get('/chats', ChatIndexController::class)->name('chats.index');
+    Route::get('/chats/items', ChatItemsController::class)->name('chats.items');
+    Route::get('/chats/search', ChatSearchController::class)->name('chats.search');
+    Route::post('/chats/direct', [DirectChatController::class, 'store'])->name('chats.direct.store');
 
     // Страница конкретного чата (где рендерится наш Vue-компонент)
-    Route::get('/chats/{chat}', [ChatController::class, 'show'])->name('chats.show');
+    Route::get('/chats/{chat}', ChatShowController::class)->name('chats.show');
 
     Route::post('/chats/{chat}/messages', [SendMessageController::class, 'store'])->name('chats.messages.store');
     Route::post('/chats/{chat}/read', [ReadMessageController::class, 'store'])->name('chats.read.store');

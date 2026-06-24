@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Profile;
 
+use App\Http\Controllers\Controller;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Services\UserStatusService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -14,9 +15,6 @@ use Inertia\Response;
 
 class ProfileController extends Controller
 {
-    /**
-     * Получает сервис статусов, чтобы перед удалением аккаунта явно перевести пользователя в offline.
-     */
     public function __construct(private readonly UserStatusService $statusService) {}
 
     /**
@@ -31,7 +29,7 @@ class ProfileController extends Controller
     }
 
     /**
-     * Обновляет имя/email пользователя и сбрасывает верификацию, если email изменился.
+     * Обновляет имя и email пользователя.
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
@@ -48,24 +46,25 @@ class ProfileController extends Controller
     }
 
     /**
-     * Удаляет аккаунт после проверки пароля и полностью завершает текущую сессию.
+     * Удаляет аккаунт после подтверждения текущего пароля.
      */
     public function destroy(Request $request): RedirectResponse
     {
+        // current_password проверяет пароль текущего аутентифицированного пользователя.
         $request->validate([
             'password' => ['required', 'current_password'],
         ]);
 
         $user = $request->user();
 
-        // Перед удалением явно фиксируем offline-статус, чтобы presence не показывал удалённого пользователя онлайн.
+        // Перед удалением явно выключаем online-статус, чтобы presence не показывал удалённого пользователя.
         $this->statusService->setOffline($user->id);
 
         Auth::logout();
 
         $user->delete();
 
-        // Инвалидация сессии и CSRF-токена защищает от повторного использования старой авторизации.
+        // После удаления аккаунта старая сессия и CSRF-токен больше не должны использоваться.
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
