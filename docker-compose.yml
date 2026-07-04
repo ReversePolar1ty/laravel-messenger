@@ -14,7 +14,7 @@
       - messenger-network
 
   webserver:
-    image: nginx:latest
+    image: nginx:1.29.8
     restart: unless-stopped
     ports:
       - "8000:80"
@@ -77,6 +77,15 @@
       depends_on:
           - app
           - redis
+      networks:
+          - messenger-network
+
+  mailpit:
+      image: 'axllent/mailpit:v1.30'
+      container_name: mailpit
+      ports:
+          - '1025:1025' # Порт для приема писем по SMTP
+          - '8025:8025' # Порт для веб-интерфейса
       networks:
           - messenger-network
 

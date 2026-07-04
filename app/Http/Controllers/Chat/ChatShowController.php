@@ -29,8 +29,8 @@ class ChatShowController extends Controller
 
         // Сообщения хранятся отдельно от метаданных чата и выводятся в хронологическом порядке.
         $messages = Message::where('chat_id', $chat->id)
-            ->orderBy('created_at', 'asc')
-            ->get();
+            ->orderBy('_id', 'desc')
+            ->cursorPaginate(10);
 
         return Inertia::render('Chat/Show', [
             'chat' => $this->presenter->single($chat, $user->id, true),

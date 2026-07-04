@@ -1,6 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const props = defineProps({
@@ -9,8 +9,10 @@ const props = defineProps({
         required: true,
     },
     messages: {
-        type: Array,
-        default: () => [],
+        type: [Array, Object],
+        default: () => ({
+            data: [],
+        }),
     },
     readStates: {
         type: Array,
@@ -20,12 +22,16 @@ const props = defineProps({
 
 const page = usePage();
 const currentUser = computed(() => page.props.auth.user);
-const messageList = ref([...props.messages]);
+const paginatedMessages = (messages) => (Array.isArray(messages) ? messages : messages?.data || []);
+const paginatorNextUrl = (messages) => (Array.isArray(messages) ? null : messages?.next_page_url || null);
+const messageList = ref([...paginatedMessages(props.messages)]);
 const readStateList = ref([...props.readStates]);
 const newMessage = ref('');
 const sending = ref(false);
 const error = ref('');
 const messagesContainer = ref(null);
+const olderMessagesUrl = ref(paginatorNextUrl(props.messages));
+const loadingOlderMessages = ref(false);
 const readRequestMessageId = ref(null);
 const companionStatus = ref(props.chat.other_user_status || {
     status: 'offline',
@@ -74,6 +80,59 @@ const scrollToBottom = async () => {
 const messageKey = (message, index) => message.id || message._id || `${message.created_at}-${index}`;
 
 const messageId = (message) => message?.id || message?._id;
+
+const mergeMessages = (messages) => {
+    messages.forEach((message) => {
+        const id = messageId(message);
+
+        if (id && messageList.value.some((item) => messageId(item) === id)) {
+            return;
+        }
+
+        messageList.value.push(message);
+    });
+};
+
+const loadOlderMessages = async () => {
+    if (!olderMessagesUrl.value || loadingOlderMessages.value) {
+        return;
+    }
+
+    const container = messagesContainer.value;
+    const previousScrollHeight = container?.scrollHeight || 0;
+    const previousScrollTop = container?.scrollTop || 0;
+
+    loadingOlderMessages.value = true;
+
+    router.visit(olderMessagesUrl.value, {
+        only: ['messages'],
+        preserveState: true,
+        preserveScroll: true,
+        preserveUrl: true,
+        replace: true,
+        showProgress: false,
+        onSuccess: async (page) => {
+            const paginator = page.props.messages;
+
+            mergeMessages(paginatedMessages(paginator));
+            olderMessagesUrl.value = paginatorNextUrl(paginator);
+
+            await nextTick();
+
+            if (container) {
+                container.scrollTop = container.scrollHeight - previousScrollHeight + previousScrollTop;
+            }
+        },
+        onFinish: () => {
+            loadingOlderMessages.value = false;
+        },
+    });
+};
+const handleMessagesScroll = () => {
+    if (messagesContainer.value?.scrollTop <= 80) {
+        loadOlderMessages();
+    }
+};
 
 const scrollToMessage = async (id) => {
     await nextTick();
@@ -486,6 +545,7 @@ onBeforeUnmount(() => {
                         <div
                             ref="messagesContainer"
                             class="flex-1 overflow-y-auto bg-[#22272e] px-4 py-6 sm:px-6"
+                            @scroll.passive="handleMessagesScroll"
                         >
                             <div
                                 v-if="sortedMessages.length === 0"
@@ -495,6 +555,20 @@ onBeforeUnmount(() => {
                             </div>
 
                             <div v-else class="space-y-4">
+                                <div
+                                    v-if="olderMessagesUrl || loadingOlderMessages"
+                                    class="flex justify-center"
+                                >
+                                    <button
+                                        type="button"
+                                        class="rounded-full border border-white/10 bg-[#181b21] px-4 py-2 text-xs font-bold uppercase tracking-[0.08em] text-[#a9a39c] transition hover:border-[#ff4f2f]/50 hover:text-[#ff6a3d] disabled:cursor-wait disabled:opacity-70"
+                                        :disabled="loadingOlderMessages"
+                                        @click="loadOlderMessages"
+                                    >
+                                        {{ loadingOlderMessages ? 'Loading...' : 'Load older' }}
+                                    </button>
+                                </div>
+
                                 <template
                                     v-for="(message, index) in sortedMessages"
                                     :key="messageKey(message, index)"
