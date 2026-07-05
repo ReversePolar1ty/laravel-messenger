@@ -5,6 +5,7 @@ use App\Http\Controllers\Chat\ChatItemsController;
 use App\Http\Controllers\Chat\ChatSearchController;
 use App\Http\Controllers\Chat\ChatShowController;
 use App\Http\Controllers\Chat\DirectChatController;
+use App\Http\Controllers\Message\DeleteMessageController;
 use App\Http\Controllers\Message\ReadMessageController;
 use App\Http\Controllers\Message\SendMessageController;
 use App\Http\Controllers\Profile\ProfileController;
@@ -42,6 +43,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/chats/{chat}', ChatShowController::class)->name('chats.show');
 
     Route::post('/chats/{chat}/messages', [SendMessageController::class, 'store'])->name('chats.messages.store');
+    Route::delete('/chats/{chat}/messages/{message}', DeleteMessageController::class)->name('chats.messages.destroy');
     Route::post('/chats/{chat}/read', [ReadMessageController::class, 'store'])->name('chats.read.store');
 });
 

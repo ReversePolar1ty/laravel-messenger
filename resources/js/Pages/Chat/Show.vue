@@ -33,6 +33,7 @@ const messagesContainer = ref(null);
 const olderMessagesUrl = ref(paginatorNextUrl(props.messages));
 const loadingOlderMessages = ref(false);
 const readRequestMessageId = ref(null);
+const deletingMessageIds = ref(new Set());
 const companionStatus = ref(props.chat.other_user_status || {
     status: 'offline',
     last_seen: null,
@@ -61,12 +62,14 @@ const companionStatusText = computed(() => {
 const companionIsOnline = computed(() => isDirectChat.value && companionStatus.value?.status === 'online');
 
 const sortedMessages = computed(() =>
-    [...messageList.value].sort((a, b) => {
-        const first = new Date(a.created_at || 0).getTime();
-        const second = new Date(b.created_at || 0).getTime();
+    [...messageList.value]
+        .filter((message) => !message.is_deleted)
+        .sort((a, b) => {
+            const first = new Date(a.created_at || 0).getTime();
+            const second = new Date(b.created_at || 0).getTime();
 
-        return first - second;
-    }),
+            return first - second;
+        }),
 );
 
 const scrollToBottom = async () => {
@@ -170,6 +173,29 @@ const isMine = (message) => {
     const senderId = message.sender_id || message.user_id;
 
     return Number(senderId) === Number(currentUser.value?.id);
+};
+
+const canDeleteMessage = (message) => isMine(message) && !message.is_deleted;
+
+const isDeletingMessage = (message) => deletingMessageIds.value.has(String(messageId(message)));
+
+const replaceMessage = (message) => {
+    const id = messageId(message);
+
+    if (!id) {
+        return;
+    }
+
+    const index = messageList.value.findIndex((item) => String(messageId(item)) === String(id));
+
+    if (index === -1) {
+        return;
+    }
+
+    messageList.value[index] = {
+        ...messageList.value[index],
+        ...message,
+    };
 };
 
 const formatTime = (value) => {
@@ -440,6 +466,31 @@ const sendMessage = async () => {
     }
 };
 
+const deleteMessage = async (message) => {
+    const id = messageId(message);
+
+    if (!id || !canDeleteMessage(message) || isDeletingMessage(message)) {
+        return;
+    }
+
+    deletingMessageIds.value = new Set([...deletingMessageIds.value, String(id)]);
+    error.value = '';
+
+    try {
+        const response = await window.axios.delete(route('chats.messages.destroy', [props.chat.id, id]));
+
+        if (response.data?.data) {
+            replaceMessage(response.data.data);
+        }
+    } catch (exception) {
+        error.value = exception.response?.data?.message || 'Не удалось удалить сообщение.';
+    } finally {
+        const nextDeleting = new Set(deletingMessageIds.value);
+        nextDeleting.delete(String(id));
+        deletingMessageIds.value = nextDeleting;
+    }
+};
+
 let echoChannel = null;
 let statusTimer = null;
 
@@ -465,6 +516,13 @@ onMounted(() => {
             })
             .listen('MessageRead', (event) => {
                 upsertReadState(event);
+            })
+            .listen('MessageDeleted', (event) => {
+                const message = event.message || event.messageData || event.data || event;
+
+                if (message) {
+                    replaceMessage(message);
+                }
             });
     }
 });
@@ -604,9 +662,58 @@ onBeforeUnmount(() => {
                                                 ? 'bg-[#ff4f2f] text-[#171a20]'
                                                 : 'border border-white/10 bg-[#181b21] text-[#f4f1ec]'"
                                         >
-                                            <p class="whitespace-pre-wrap break-words text-sm leading-6">
-                                                {{ message.text }}
+                                            <p
+                                                class="whitespace-pre-wrap break-words text-sm leading-6"
+                                            >
+                                                <span v-if="message.is_deleted">Сообщение удалено</span>
+                                                <span>{{ message.text }}</span>
                                             </p>
+                                            <div
+                                                v-if="canDeleteMessage(message)"
+                                                class="mt-2 flex justify-end"
+                                            >
+                                                <button
+                                                    type="button"
+                                                    class="inline-flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-current/15 p-0 text-[0px] opacity-70 transition hover:bg-black/10 hover:opacity-100 disabled:cursor-wait disabled:opacity-40"
+                                                    :disabled="isDeletingMessage(message)"
+                                                    aria-label="Удалить сообщение"
+                                                    title="Удалить сообщение"
+                                                    @click="deleteMessage(message)"
+                                                >
+                                                    <svg
+                                                        class="h-3.5 w-3.5 shrink-0"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <path
+                                                            d="M4 7h16"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                        />
+                                                        <path
+                                                            d="M10 11v6M14 11v6"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linecap="round"
+                                                        />
+                                                        <path
+                                                            d="M6 7l1 13h10l1-13"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linejoin="round"
+                                                        />
+                                                        <path
+                                                            d="M9 7V4h6v3"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            stroke-linejoin="round"
+                                                        />
+                                                    </svg>
+                                                    {{ isDeletingMessage(message) ? 'Удаление' : 'Удалить' }}
+                                                </button>
+                                            </div>
                                             <div
                                                 class="mt-1 flex items-center justify-end gap-2 text-xs"
                                                 :class="isMine(message) ? 'text-[#4a2118]' : 'text-[#a9a39c]'"

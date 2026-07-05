@@ -32,12 +32,12 @@ class ChatTestSeeder extends Seeder
             ],
             [
                 'name' => 'Билли Бутчер',
-                'email' => 'maria@example.com',
+                'email' => '2@mail.ru',
                 'password' => Hash::make('password'),
             ],
             [
                 'name' => 'Виталий Цаль',
-                'email' => 'alex@example.com',
+                'email' => '3@mail.ru',
                 'password' => Hash::make('password'),
             ],
             [
@@ -50,8 +50,8 @@ class ChatTestSeeder extends Seeder
         });
 
         $ivan = $users->firstWhere('email', '1@mail.ru');
-        $maria = $users->firstWhere('email', 'maria@example.com');
-        $alex = $users->firstWhere('email', 'alex@example.com');
+        $maria = $users->firstWhere('email', '2@mail.ru');
+        $alex = $users->firstWhere('email', '3@mail.ru');
 
         // ==========================================
         // Приватный чат
