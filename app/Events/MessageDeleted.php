@@ -12,10 +12,17 @@ class MessageDeleted implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    /**
+     * Событие для открытых страниц чата: клиент получает soft-deleted сообщение
+     * и убирает его из локального списка без полной перезагрузки Inertia-страницы.
+     */
     public function __construct(public array $messageData, public int|string $chatId)
     {
     }
 
+    /**
+     * Рассылаем событие только участникам конкретного приватного канала чата.
+     */
     public function broadcastOn(): array
     {
         return [
@@ -23,6 +30,9 @@ class MessageDeleted implements ShouldBroadcastNow
         ];
     }
 
+    /**
+     * Сохраняем payload совместимым с MessageSent: фронтенд читает поле message.
+     */
     public function broadcastWith(): array
     {
         return [

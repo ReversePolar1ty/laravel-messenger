@@ -12,6 +12,9 @@ class DeleteMessageController extends Controller
 {
     public function __construct(private readonly MessageDeletionService $messages) {}
 
+    /**
+     * Обрабатывает HTTP-запрос на удаление и оставляет бизнес-логику сервису.
+     */
     public function __invoke(DeleteMessageRequest $request, Chat $chat, string $message): JsonResponse
     {
         $deletedMessage = $this->messages->deleteForEveryone($chat, $message, $request->user());
