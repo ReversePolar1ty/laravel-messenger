@@ -10,10 +10,11 @@ RUN apt-get update && apt-get install -y \
     git \
     libcurl4-openssl-dev \
     pkg-config \
-    libssl-dev
+    libssl-dev \
+    libicu-dev
 
 # Устанавливаем расширения PHP
-RUN docker-php-ext-install pdo_mysql bcmath gd zip pcntl
+RUN docker-php-ext-install pdo_mysql bcmath gd zip pcntl intl
 
 #Установка Node.JS
 RUN apt-get update && apt-get install -y nodejs npm
