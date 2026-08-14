@@ -7,6 +7,25 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Проверка планов SQL-запросов
+
+Команда `debug:explain-user-chats` анализирует тот же SQL-запрос, которым
+`ChatQueryService::forUser()` получает список чатов пользователя. Она выводит
+сначала ожидаемый план, затем план с фактическими метриками выполнения:
+
+```bash
+docker compose exec app php artisan debug:explain-user-chats 1
+```
+
+Аргумент `1` — ID пользователя; его можно не передавать, тогда команда возьмёт
+первого пользователя из базы. Результат смотрите в том же терминале, где
+запустили команду. В JSON ищите `key` (использованный индекс), `access_type`,
+`rows`/`rows_examined_per_scan`; в секции `ANALYZE` также будут `r_rows` и
+`r_total_time_ms` — фактическое число строк и время.
+
+В проекте используется MariaDB 12. В ней синтаксис фактического анализа —
+`ANALYZE FORMAT=JSON SELECT ...`; это аналог `EXPLAIN ANALYZE` из MySQL.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

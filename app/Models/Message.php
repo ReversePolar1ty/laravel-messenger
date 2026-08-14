@@ -20,6 +20,7 @@ class Message extends MongoModel
         'is_edited',
         'is_deleted',
         'user_id'
+            //TODO Why user_id
     ];
 
     // Автоматическое приведение типов для вложений и флагов

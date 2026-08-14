@@ -89,6 +89,21 @@
       networks:
           - messenger-network
 
+  rabbitmq:
+      image: rabbitmq:4-management
+      container_name: rabbitMQ
+      restart: unless-stopped
+      ports:
+          - "5672:5672"   # AMQP протокол
+          - "15672:15672" # Панель управления Web UI
+      environment:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+      volumes:
+          - rabbitmq_data:/var/lib/rabbitmq
+      networks:
+          - messenger-network
+
 networks:
   messenger-network:
     driver: bridge
@@ -97,3 +112,4 @@ volumes:
   mariadb_data:
   mongodb_data:
   redis_data:
+  rabbitmq_data:

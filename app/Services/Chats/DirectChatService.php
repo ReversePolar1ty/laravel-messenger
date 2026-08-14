@@ -31,6 +31,7 @@ class DirectChatService
             $chat = Chat::create([
                 'type' => 'direct',
                 'creator_id' => $creator->id,
+                //TODO creator why???
             ]);
 
             // Участников пишем напрямую в pivot-таблицу, потому что это SQL-часть гибридного хранилища.
