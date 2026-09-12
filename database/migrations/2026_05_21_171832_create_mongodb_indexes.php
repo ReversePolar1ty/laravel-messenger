@@ -14,18 +14,20 @@ return new class extends Migration
         // Указываем, что работаем с соединением MongoDB
         $connection = Schema::connection('mongodb');
 
-        // 1. Коллекция сообщений
-        $connection->create('messages', function (Blueprint $collection) {
-            // Индекс для загрузки истории чата (пагинация)
+        // Коллекция должна совпадать с Message::$collection (messenger_messages).
+        $connection->create('messenger_messages', function (Blueprint $collection) {
+            // Пагинация истории: ChatShowController сортирует по _id desc.
+            $collection->index(['chat_id' => 1, '_id' => -1]);
+
+            // Загрузка по времени создания (списки / fallback-сортировка).
             $collection->index(['chat_id' => 1, 'created_at' => -1]);
 
-            // Индекс для поиска медиафайлов/вложений в чате
+            // Поиск медиафайлов/вложений в чате.
             $collection->index(['chat_id' => 1, 'type' => 1, 'created_at' => -1]);
         });
 
-        // 2. Коллекция статусов прочтения
+        // Статусы прочтения: один юзер — один документ на чат.
         $connection->create('chat_reads', function (Blueprint $collection) {
-            // Уникальный индекс: один юзер - один статус прочтения в конкретном чате
             $collection->unique(['chat_id' => 1, 'user_id' => 1]);
         });
     }
@@ -36,7 +38,7 @@ return new class extends Migration
     public function down(): void
     {
         $connection = Schema::connection('mongodb');
-        $connection->dropIfExists('messages');
+        $connection->dropIfExists('messenger_messages');
         $connection->dropIfExists('chat_reads');
     }
 };

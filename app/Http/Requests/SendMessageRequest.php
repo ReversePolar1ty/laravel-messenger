@@ -11,21 +11,31 @@ class SendMessageRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        if (! $this->user() || ! $this->chat_id) {
+        $user = $this->user();
+        $chat = $this->route('chat');
+
+        if (! $user || ! $chat instanceof Chat) {
             return false;
         }
 
-        return DB::connection((new Chat())->getConnectionName())
+        return DB::connection($chat->getConnectionName())
             ->table('chat_participants')
-            ->where('chat_id', $this->chat_id)
-            ->where('user_id', $this->user()->id)
+            ->where('chat_id', $chat->id)
+            ->where('user_id', $user->id)
             ->exists();
     }
 
     public function rules(): array
     {
+        $chatConnection = (new Chat)->getConnectionName();
+
         return [
-            'chat_id' => ['required', 'uuid', 'exists:chats,id'],
+            // chat_id всегда берётся из route {chat}, body игнорируется.
+            'chat_id' => [
+                'required',
+                'uuid',
+                Rule::exists($chatConnection.'.chats', 'id'),
+            ],
             'type' => ['required', 'string', Rule::in(['text', 'image', 'file'])],
             'text' => ['required_if:type,text', 'nullable', 'string', 'max:5000'],
         ];
@@ -33,7 +43,10 @@ class SendMessageRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $chat = $this->route('chat');
+
         $this->merge([
+            'chat_id' => $chat instanceof Chat ? $chat->id : null,
             'type' => $this->type ?? 'text',
         ]);
     }

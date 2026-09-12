@@ -119,6 +119,7 @@ return [
             'host' => env('MONGO_DB_HOST', '127.0.0.1'),
             'port' => env('MONGO_DB_PORT', 27017),
             'database' => env('MONGO_DB_DATABASE', 'forge'),
+            // Если MONGO_DB_URI задан, драйвер использует его как основу подключения.
             'dsn' => env('MONGO_DB_URI', 'mongodb://localhost:27017'),
             'username' => env('MONGO_DB_USERNAME', ''),
             'password' => env('MONGO_DB_PASSWORD', ''),
@@ -126,8 +127,6 @@ return [
                 'database' => env('MONGO_DB_AUTHENTICATION_DATABASE', 'admin'), // Монга требует авторизацию через admin-базу
             ],
         ],
-        // Если переменная MONGO_DB_URI заполнена, драйвер возьмет её за основу
-        'dsn' => env('MONGO_DB_URI', null),
     ],
 
     /*

@@ -24,7 +24,6 @@ class MessageTest extends TestCase
 
         $response = $this->actingAs($user)
             ->postJson("/chats/{$chat->id}/messages", [
-                'chat_id' => $chat->id,
                 'type' => 'text',
                 'text' => 'Hello, how are you?',
             ]);

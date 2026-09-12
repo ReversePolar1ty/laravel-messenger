@@ -202,13 +202,13 @@ const startDirectChat = (user) => {
         <template #header>
             <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                    <p class="text-xs font-black uppercase tracking-[0.22em] text-[#ff4f2f]">
+                    <p class="text-xs font-black uppercase tracking-[0.22em] text-[var(--ember)]">
                         realtime workspace
                     </p>
-                    <h2 class="mt-3 text-4xl font-black uppercase leading-none tracking-[-0.04em] text-[#f4f1ec] sm:text-5xl">
+                    <h2 class="mt-3 text-4xl font-black uppercase leading-none tracking-[-0.04em] text-[var(--ink)] sm:text-5xl">
                         Чаты
                     </h2>
-                    <p class="mt-3 max-w-2xl text-sm font-semibold leading-7 text-[#d7d2cb]">
+                    <p class="mt-3 max-w-2xl text-sm font-semibold leading-7 text-[var(--ink-soft)]">
                         {{ chatList.length }} активных диалогов
                     </p>
                 </div>
@@ -221,7 +221,7 @@ const startDirectChat = (user) => {
                     >
                     <span
                         v-if="isSearching"
-                        class="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-[#3a3f47] border-t-[#ff4f2f]"
+                        class="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--ember)]"
                         aria-hidden="true"
                     />
                 </div>
@@ -231,48 +231,45 @@ const startDirectChat = (user) => {
         <div class="py-8">
             <div class="mx-auto grid max-w-7xl gap-7 px-4 sm:px-6 lg:grid-cols-[23rem_1fr] lg:px-8">
                 <section class="messenger-panel overflow-hidden rounded-2xl">
-                    <div class="border-b border-white/10 px-5 py-4">
-                        <h3 class="text-xs font-black uppercase tracking-[0.18em] text-[#f4f1ec]">
+                    <div class="border-b border-[var(--border)] px-5 py-4">
+                        <h3 class="text-xs font-black uppercase tracking-[0.18em] text-[var(--ink)]">
                             Люди
                         </h3>
                     </div>
 
                     <div
                         v-if="search.trim() === ''"
-                        class="px-5 py-10 text-sm font-medium leading-7 text-[#a9a39c]"
+                        class="px-5 py-10 text-sm font-medium leading-7 text-[var(--muted)]"
                     >
                         Введите имя, чтобы найти пользователя.
                     </div>
 
                     <div
                         v-else-if="!isSearching && searchUsers.length === 0"
-                        class="px-5 py-10 text-sm font-medium leading-7 text-[#a9a39c]"
+                        class="px-5 py-10 text-sm font-medium leading-7 text-[var(--muted)]"
                     >
                         Пользователи не найдены.
                     </div>
 
-                    <div v-else class="divide-y divide-white/10">
+                    <div v-else class="divide-y divide-[var(--border)]">
                         <div
                             v-for="user in searchUsers"
                             :key="user.id"
-                            class="flex items-center gap-3 px-4 py-4 transition hover:bg-white/[0.03] sm:px-5"
+                            class="flex items-center gap-3 px-4 py-4 transition hover:bg-[var(--hover-row)] sm:px-5"
                         >
-                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[#ff4f2f]/40 bg-[#ff4f2f]/10 text-sm font-black text-[#ff6a3d]">
+                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--ember-40)] bg-[var(--ember-10)] text-sm font-black text-[var(--ember-soft)]">
                                 {{ userInitial(user) }}
                             </div>
 
                             <div class="min-w-0 flex-1">
-                                <div class="truncate text-sm font-bold text-[#f4f1ec]">
+                                <div class="truncate text-sm font-bold text-[var(--ink)]">
                                     {{ user.name }}
-                                </div>
-                                <div class="truncate text-xs text-[#a9a39c]">
-                                    {{ user.email }}
                                 </div>
                             </div>
 
                             <button
                                 type="button"
-                                class="inline-flex h-10 shrink-0 items-center rounded-lg bg-[#ff4f2f] px-3 text-xs font-black uppercase tracking-[0.08em] text-[#171a20] transition hover:bg-[#ff6a3d] disabled:cursor-not-allowed disabled:opacity-60"
+                                class="inline-flex h-10 shrink-0 items-center rounded-lg bg-[var(--ember)] px-3 text-xs font-black uppercase tracking-[0.08em] text-[var(--ember-contrast)] transition hover:bg-[var(--ember-soft)] disabled:cursor-not-allowed disabled:opacity-60"
                                 :disabled="startingUserId === user.id"
                                 @click="startDirectChat(user)"
                             >
@@ -283,14 +280,14 @@ const startDirectChat = (user) => {
                 </section>
 
                 <section class="messenger-panel overflow-hidden rounded-2xl">
-                    <div class="border-b border-white/10 px-5 py-4 sm:px-6">
+                    <div class="border-b border-[var(--border)] px-5 py-4 sm:px-6">
                         <div class="flex items-center justify-between gap-3">
-                            <h3 class="text-xs font-black uppercase tracking-[0.18em] text-[#f4f1ec]">
+                            <h3 class="text-xs font-black uppercase tracking-[0.18em] text-[var(--ink)]">
                                 Диалоги
                             </h3>
                             <span
                                 v-if="isRefreshingChats"
-                                class="h-4 w-4 animate-spin rounded-full border-2 border-[#3a3f47] border-t-[#ff4f2f]"
+                                class="h-4 w-4 animate-spin rounded-full border-2 border-[var(--line)] border-t-[var(--ember)]"
                                 aria-label="Обновление чатов"
                             />
                         </div>
@@ -300,21 +297,21 @@ const startDirectChat = (user) => {
                         v-if="filteredChats.length === 0"
                         class="px-6 py-20 text-center"
                     >
-                        <h3 class="text-lg font-black uppercase tracking-[-0.02em] text-[#f4f1ec]">
+                        <h3 class="text-lg font-black uppercase tracking-[-0.02em] text-[var(--ink)]">
                             Чатов не найдено
                         </h3>
-                        <p class="mt-3 text-sm leading-7 text-[#a9a39c]">
+                        <p class="mt-3 text-sm leading-7 text-[var(--muted)]">
                             Найдите человека слева и начните личный чат.
                         </p>
                     </div>
 
-                    <div v-else class="divide-y divide-white/10">
+                    <div v-else class="divide-y divide-[var(--border)]">
                         <Link
                             v-for="chat in filteredChats"
                             :key="chat.id"
                             :href="route('chats.show', chat.id)"
                             class="group flex items-center gap-4 px-4 py-5 transition hover:bg-white/[0.035] sm:px-6"
-                            :class="chat.has_unread ? 'bg-[#ff4f2f]/[0.06]' : ''"
+                            :class="chat.has_unread ? 'bg-[var(--unread)]' : ''"
                         >
                             <img
                                 v-if="chat.avatar_url"
@@ -324,30 +321,30 @@ const startDirectChat = (user) => {
                             >
                             <div
                                 v-else
-                                class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#ff4f2f]/30 bg-[#171a20] text-sm font-black text-[#ff6a3d]"
+                                class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[var(--ember-30)] bg-[var(--ember-contrast)] text-sm font-black text-[var(--ember-soft)]"
                             >
                                 {{ chatInitial(chat) }}
                             </div>
 
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center justify-between gap-3">
-                                    <h3 class="truncate text-base font-normal tracking-[-0.03em] text-[#f4f1ec]">
+                                    <h3 class="truncate text-base font-normal tracking-[-0.03em] text-[var(--ink)]">
                                         {{ chatTitle(chat) }}
                                     </h3>
                                     <div class="flex shrink-0 items-center gap-2">
                                         <span
                                             v-if="chat.has_unread"
-                                            class="h-2.5 w-2.5 rounded-full bg-[#ff4f2f] shadow-[0_0_18px_rgba(255,79,47,0.8)]"
+                                            class="h-2.5 w-2.5 rounded-full bg-[var(--ember)] shadow-[0_0_18px_var(--ember-glow)]"
                                             aria-label="Unread messages"
                                         />
-                                        <time class="text-xs font-semibold text-[#a9a39c]">
+                                        <time class="text-xs font-semibold text-[var(--muted)]">
                                             {{ formatLastMessageTime(chat.last_message_at) }}
                                         </time>
                                     </div>
                                 </div>
                                 <p
                                     class="mt-1 truncate text-sm"
-                                    :class="chat.has_unread ? 'font-bold text-[#f4f1ec]' : 'text-[#a9a39c]'"
+                                    :class="chat.has_unread ? 'font-bold text-[var(--ink)]' : 'text-[var(--muted)]'"
                                 >
                                     {{ chat.last_message_text || 'Сообщений пока нет' }}
                                 </p>

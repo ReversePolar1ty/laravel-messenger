@@ -5,11 +5,13 @@ import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
+import { useTheme } from '@/composables/useTheme';
 import { Link, usePage } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
 const page = usePage();
 const isChatsSection = computed(() => route().current('chats.*'));
+const { isDark, saving: themeSaving, toggleTheme } = useTheme();
 
 let onlineChannel = null;
 let heartbeatTimer = null;
@@ -71,30 +73,25 @@ onBeforeUnmount(() => {
 
 <template>
     <div>
-        <div class="min-h-screen bg-[#22272e] text-[#f4f1ec]">
-            <nav
-                class="border-b border-white/5 bg-[#191d23]/95 backdrop-blur"
-            >
-                <!-- Primary Navigation Menu -->
+        <div class="theme-page min-h-screen">
+            <nav class="theme-nav border-b backdrop-blur">
                 <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div class="flex h-[5.4rem] justify-between">
                         <div class="flex">
-                            <!-- Logo -->
                             <div class="flex shrink-0 items-center">
                                 <Link
                                     :href="route('chats.index')"
                                     class="flex items-center gap-3"
                                 >
                                     <ApplicationLogo
-                                        class="block h-8 w-auto fill-current text-[#ff4f2f]"
+                                        class="block h-8 w-auto fill-current text-[var(--ember)]"
                                     />
-                                    <span class="text-sm font-black uppercase tracking-[0.16em] text-[#ff4f2f]">
+                                    <span class="text-sm font-black uppercase tracking-[0.16em] text-[var(--ember)]">
                                         Laravel.Messenger
                                     </span>
                                 </Link>
                             </div>
 
-                            <!-- Navigation Links -->
                             <div
                                 class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex"
                             >
@@ -107,15 +104,53 @@ onBeforeUnmount(() => {
                             </div>
                         </div>
 
-                        <div class="hidden sm:ms-6 sm:flex sm:items-center">
-                            <!-- Settings Dropdown -->
-                            <div class="relative ms-3">
+                        <div class="hidden items-center gap-3 sm:ms-6 sm:flex">
+                            <button
+                                type="button"
+                                class="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--ember)] transition hover:border-[var(--ember-60)] hover:bg-[var(--ember-10)] hover:text-[var(--ember-soft)] focus:outline-none disabled:opacity-60"
+                                :disabled="themeSaving"
+                                :aria-label="isDark ? 'Включить светлую тему' : 'Включить тёмную тему'"
+                                :title="isDark ? 'Светлая тема' : 'Тёмная тема'"
+                                @click="toggleTheme"
+                            >
+                                <!-- Солнце: сейчас тёмная → переключить на светлую -->
+                                <svg
+                                    v-if="isDark"
+                                    class="h-5 w-5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <circle cx="12" cy="12" r="4" />
+                                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                                </svg>
+                                <!-- Луна: сейчас светлая → переключить на тёмную -->
+                                <svg
+                                    v-else
+                                    class="h-5 w-5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M21 14.5A8.5 8.5 0 1 1 9.5 3a7 7 0 0 0 11.5 11.5z" />
+                                </svg>
+                            </button>
+
+                            <div class="relative">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
                                         <span class="inline-flex rounded-md">
                                             <button
                                                 type="button"
-                                                class="inline-flex items-center rounded-lg border border-white/5 bg-[#232830] px-4 py-3 text-xs font-black uppercase leading-4 tracking-[0.14em] text-[#ff4f2f] transition duration-150 ease-in-out hover:bg-[#2b3038] hover:text-[#ff6a3d] focus:outline-none"
+                                                class="inline-flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-xs font-black uppercase leading-4 tracking-[0.14em] text-[var(--ember)] transition duration-150 ease-in-out hover:bg-[var(--ember-10)] hover:text-[var(--ember-soft)] focus:outline-none"
                                             >
                                                 {{ $page.props.auth.user.name }}
 
@@ -154,14 +189,49 @@ onBeforeUnmount(() => {
                             </div>
                         </div>
 
-                        <!-- Hamburger -->
-                        <div class="-me-2 flex items-center sm:hidden">
+                        <div class="-me-2 flex items-center gap-2 sm:hidden">
                             <button
+                                type="button"
+                                class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] text-[var(--ember)] transition hover:border-[var(--ember-60)] hover:text-[var(--ember-soft)] focus:outline-none disabled:opacity-60"
+                                :disabled="themeSaving"
+                                :aria-label="isDark ? 'Включить светлую тему' : 'Включить тёмную тему'"
+                                @click="toggleTheme"
+                            >
+                                <svg
+                                    v-if="isDark"
+                                    class="h-5 w-5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <circle cx="12" cy="12" r="4" />
+                                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+                                </svg>
+                                <svg
+                                    v-else
+                                    class="h-5 w-5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M21 14.5A8.5 8.5 0 1 1 9.5 3a7 7 0 0 0 11.5 11.5z" />
+                                </svg>
+                            </button>
+
+                            <button
+                                class="inline-flex items-center justify-center rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] p-2 text-[var(--ink)] transition duration-150 ease-in-out hover:border-[var(--ember-60)] hover:text-[var(--ember)] focus:outline-none"
                                 @click="
                                     showingNavigationDropdown =
                                         !showingNavigationDropdown
                                 "
-                                class="inline-flex items-center justify-center rounded-lg border border-white/10 bg-[#232830] p-2 text-[#f4f1ec] transition duration-150 ease-in-out hover:border-[#ff4f2f]/60 hover:text-[#ff4f2f] focus:outline-none"
                             >
                                 <svg
                                     class="h-6 w-6"
@@ -197,7 +267,6 @@ onBeforeUnmount(() => {
                     </div>
                 </div>
 
-                <!-- Responsive Navigation Menu -->
                 <div
                     :class="{
                         block: showingNavigationDropdown,
@@ -214,17 +283,12 @@ onBeforeUnmount(() => {
                         </ResponsiveNavLink>
                     </div>
 
-                    <!-- Responsive Settings Options -->
-                    <div
-                        class="border-t border-white/10 pb-1 pt-4"
-                    >
+                    <div class="border-t border-[var(--border-strong)] pb-1 pt-4">
                         <div class="px-4">
-                            <div
-                                class="text-base font-bold text-[#f4f1ec]"
-                            >
+                            <div class="text-base font-bold text-[var(--ink)]">
                                 {{ $page.props.auth.user.name }}
                             </div>
-                            <div class="text-sm font-medium text-[#a9a39c]">
+                            <div class="text-sm font-medium text-[var(--muted)]">
                                 {{ $page.props.auth.user.email }}
                             </div>
                         </div>
@@ -246,17 +310,15 @@ onBeforeUnmount(() => {
                 </div>
             </nav>
 
-            <!-- Page Heading -->
             <header
-                class="border-b border-white/5 bg-[#242930]"
                 v-if="$slots.header"
+                class="theme-header border-b"
             >
                 <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
                     <slot name="header" />
                 </div>
             </header>
 
-            <!-- Page Content -->
             <main>
                 <slot />
             </main>

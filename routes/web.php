@@ -10,6 +10,7 @@ use App\Http\Controllers\Message\ReadMessageController;
 use App\Http\Controllers\Message\SendMessageController;
 use App\Http\Controllers\Profile\ProfileController;
 use App\Http\Controllers\User\UserStatusController;
+use App\Http\Controllers\User\UserThemeController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -33,16 +34,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/users/status/heartbeat', [UserStatusController::class, 'heartbeat'])->name('users.status.heartbeat');
     Route::post('/users/status/offline', [UserStatusController::class, 'offline'])->name('users.status.offline');
     Route::get('/users/{user}/status', [UserStatusController::class, 'show'])->name('users.status.show');
+    Route::put('/users/theme', [UserThemeController::class, 'update'])->name('users.theme.update');
 
     Route::get('/chats', ChatIndexController::class)->name('chats.index');
     Route::get('/chats/items', ChatItemsController::class)->name('chats.items');
-    Route::get('/chats/search', ChatSearchController::class)->name('chats.search');
-    Route::post('/chats/direct', [DirectChatController::class, 'store'])->name('chats.direct.store');
+    Route::get('/chats/search', ChatSearchController::class)
+        ->middleware('throttle:chat-search')
+        ->name('chats.search');
+    Route::post('/chats/direct', [DirectChatController::class, 'store'])
+        ->middleware('throttle:chat-direct')
+        ->name('chats.direct.store');
 
     // Страница конкретного чата (где рендерится наш Vue-компонент)
     Route::get('/chats/{chat}', ChatShowController::class)->name('chats.show');
 
-    Route::post('/chats/{chat}/messages', [SendMessageController::class, 'store'])->name('chats.messages.store');
+    Route::post('/chats/{chat}/messages', [SendMessageController::class, 'store'])
+        ->middleware('throttle:messages')
+        ->name('chats.messages.store');
     Route::delete('/chats/{chat}/messages/{message}', DeleteMessageController::class)->name('chats.messages.destroy');
     Route::post('/chats/{chat}/read', [ReadMessageController::class, 'store'])->name('chats.read.store');
 });

@@ -40,18 +40,34 @@ class ChatQueryService
      */
     public function participants(string $chatId): Collection
     {
-        // Join нужен только для данных списка участников; модели User здесь не изменяются.
+        return $this->participantsForChats([$chatId])->get($chatId, collect());
+    }
+
+    /**
+     * Батч-загрузка участников для списка чатов (без N+1).
+     *
+     * @param  array<int, string>  $chatIds
+     * @return Collection<string, Collection<int, object>>
+     */
+    public function participantsForChats(array $chatIds): Collection
+    {
+        if ($chatIds === []) {
+            return collect();
+        }
+
+        // Email не отдаём: достаточно id/name для UI и авторизации на клиенте.
         return DB::connection($this->connectionName())
             ->table('chat_participants')
             ->join('users', 'users.id', '=', 'chat_participants.user_id')
-            ->where('chat_participants.chat_id', $chatId)
+            ->whereIn('chat_participants.chat_id', $chatIds)
             ->orderBy('users.name')
             ->get([
+                'chat_participants.chat_id',
                 'users.id',
                 'users.name',
-                'users.email',
                 'chat_participants.role',
-            ]);
+            ])
+            ->groupBy('chat_id');
     }
 
     /**
@@ -69,11 +85,10 @@ class ChatQueryService
             ->where('name', 'like', "%{$search}%")
             ->orderBy('name')
             ->limit(10)
-            ->get(['id', 'name', 'email'])
+            ->get(['id', 'name'])
             ->map(fn (User $foundUser) => [
                 'id' => $foundUser->id,
                 'name' => $foundUser->name,
-                'email' => $foundUser->email,
                 'chat_id' => $this->findDirectChatId($currentUserId, $foundUser->id),
             ]);
     }

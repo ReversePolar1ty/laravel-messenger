@@ -446,7 +446,6 @@ const sendMessage = async () => {
 
     try {
         const response = await window.axios.post(route('chats.messages.store', props.chat.id), {
-            chat_id: props.chat.id,
             type: 'text',
             text,
         });
@@ -549,10 +548,10 @@ onBeforeUnmount(() => {
             <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
                 <section class="messenger-panel overflow-hidden rounded-2xl">
                     <div class="flex h-[calc(100vh-8.5rem)] min-h-[40rem] flex-col">
-                        <div class="flex items-center gap-4 border-b border-white/10 bg-[#1a1e24] px-4 py-4 sm:px-6">
+                        <div class="flex items-center gap-4 border-b border-[var(--border)] bg-[var(--chat-chrome)] px-4 py-4 sm:px-6">
                             <Link
                                 :href="route('chats.index')"
-                                class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-[#232830] text-[#ff4f2f] transition hover:border-[#ff4f2f]/60 hover:bg-[#ff4f2f]/10 hover:text-[#ff6a3d]"
+                                class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--ember)] transition hover:border-[var(--ember-60)] hover:bg-[var(--ember-10)] hover:text-[var(--ember-soft)]"
                                 aria-label="Назад к чатам"
                             >
                                 <svg
@@ -578,22 +577,22 @@ onBeforeUnmount(() => {
                             >
                             <div
                                 v-else
-                                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#ff4f2f]/40 bg-[#ff4f2f]/10 text-sm font-black text-[#ff6a3d]"
+                                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[var(--ember-40)] bg-[var(--ember-10)] text-sm font-black text-[var(--ember-soft)]"
                             >
                                 {{ chatInitial }}
                             </div>
                             <div class="min-w-0">
-                                <div class="truncate text-base font-normal tracking-[-0.03em] text-[#f4f1ec]">
+                                <div class="truncate text-base font-normal tracking-[-0.03em] text-[var(--ink)]">
                                     {{ chatTitle }}
                                 </div>
                                 <div
                                     class="inline-flex items-center gap-1.5 text-sm"
-                                    :class="companionIsOnline ? 'text-[#ff6a3d]' : 'text-[#a9a39c]'"
+                                    :class="companionIsOnline ? 'text-[var(--ember-soft)]' : 'text-[var(--muted)]'"
                                 >
                                     <span
                                         v-if="isDirectChat"
                                         class="h-2 w-2 rounded-full"
-                                        :class="companionIsOnline ? 'bg-[#ff4f2f] shadow-[0_0_16px_rgba(255,79,47,0.85)]' : 'bg-[#6f716e]'"
+                                        :class="companionIsOnline ? 'bg-[var(--ember)] shadow-[0_0_16px_var(--ember-glow)]' : 'bg-[var(--offline)]'"
                                     />
                                     {{ companionStatusText }}
                                 </div>
@@ -602,12 +601,12 @@ onBeforeUnmount(() => {
 
                         <div
                             ref="messagesContainer"
-                            class="flex-1 overflow-y-auto bg-[#22272e] px-4 py-6 sm:px-6"
+                            class="flex-1 overflow-y-auto bg-[var(--page)] px-4 py-6 sm:px-6"
                             @scroll.passive="handleMessagesScroll"
                         >
                             <div
                                 v-if="sortedMessages.length === 0"
-                                class="flex h-full items-center justify-center text-center text-sm font-semibold text-[#a9a39c]"
+                                class="flex h-full items-center justify-center text-center text-sm font-semibold text-[var(--muted)]"
                             >
                                 Сообщений пока нет.
                             </div>
@@ -619,7 +618,7 @@ onBeforeUnmount(() => {
                                 >
                                     <button
                                         type="button"
-                                        class="rounded-full border border-white/10 bg-[#181b21] px-4 py-2 text-xs font-bold uppercase tracking-[0.08em] text-[#a9a39c] transition hover:border-[#ff4f2f]/50 hover:text-[#ff6a3d] disabled:cursor-wait disabled:opacity-70"
+                                        class="rounded-full border border-[var(--border)] bg-[var(--surface-deep)] px-4 py-2 text-xs font-bold uppercase tracking-[0.08em] text-[var(--muted)] transition hover:border-[var(--ember-50)] hover:text-[var(--ember-soft)] disabled:cursor-wait disabled:opacity-70"
                                         :disabled="loadingOlderMessages"
                                         @click="loadOlderMessages"
                                     >
@@ -635,7 +634,7 @@ onBeforeUnmount(() => {
                                         v-if="shouldShowDate(message, index)"
                                         class="flex justify-center"
                                     >
-                                        <span class="rounded-full border border-white/10 bg-[#181b21] px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-[#a9a39c] shadow-sm">
+                                        <span class="rounded-full border border-[var(--border)] bg-[var(--surface-deep)] px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-[var(--muted)] shadow-sm">
                                             {{ formatDate(message.created_at) }}
                                         </span>
                                     </div>
@@ -644,11 +643,11 @@ onBeforeUnmount(() => {
                                         v-if="isFirstUnreadMessage(message)"
                                         class="flex items-center gap-3"
                                     >
-                                        <div class="h-px flex-1 bg-[#ff4f2f]/35" />
-                                        <span class="rounded-full border border-[#ff4f2f]/30 bg-[#ff4f2f]/10 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#ff6a3d]">
+                                        <div class="h-px flex-1 bg-[var(--ember-35)]" />
+                                        <span class="rounded-full border border-[var(--ember-30)] bg-[var(--ember-10)] px-3 py-1 text-xs font-black uppercase tracking-wide text-[var(--ember-soft)]">
                                             New messages
                                         </span>
-                                        <div class="h-px flex-1 bg-[#ff4f2f]/35" />
+                                        <div class="h-px flex-1 bg-[var(--ember-35)]" />
                                     </div>
 
                                     <div
@@ -659,8 +658,8 @@ onBeforeUnmount(() => {
                                         <div
                                             class="max-w-[82%] rounded-2xl px-4 py-3 shadow-sm sm:max-w-[68%]"
                                             :class="isMine(message)
-                                                ? 'bg-[#ff4f2f] text-[#171a20]'
-                                                : 'border border-white/10 bg-[#181b21] text-[#f4f1ec]'"
+                                                ? 'bg-[var(--ember)] text-[var(--ember-contrast)]'
+                                                : 'border border-[var(--border)] bg-[var(--surface-deep)] text-[var(--ink)]'"
                                         >
                                             <p
                                                 class="whitespace-pre-wrap break-words text-sm leading-6"
@@ -669,19 +668,20 @@ onBeforeUnmount(() => {
                                                 <span>{{ message.text }}</span>
                                             </p>
                                             <div
-                                                v-if="canDeleteMessage(message)"
-                                                class="mt-2 flex justify-end"
+                                                class="mt-1.5 flex items-center justify-end gap-2 text-xs"
+                                                :class="isMine(message) ? 'text-[var(--on-ember-muted)]' : 'text-[var(--muted)]'"
                                             >
                                                 <button
+                                                    v-if="canDeleteMessage(message)"
                                                     type="button"
-                                                    class="inline-flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-current/15 p-0 text-[0px] opacity-70 transition hover:bg-black/10 hover:opacity-100 disabled:cursor-wait disabled:opacity-40"
+                                                    class="inline-flex h-5 w-5 items-center justify-center rounded-md opacity-55 transition hover:bg-black/10 hover:opacity-100 disabled:cursor-wait disabled:opacity-40"
                                                     :disabled="isDeletingMessage(message)"
                                                     aria-label="Удалить сообщение"
                                                     title="Удалить сообщение"
                                                     @click="deleteMessage(message)"
                                                 >
                                                     <svg
-                                                        class="h-3.5 w-3.5 shrink-0"
+                                                        class="h-3.5 w-3.5"
                                                         viewBox="0 0 24 24"
                                                         fill="none"
                                                         aria-hidden="true"
@@ -711,13 +711,7 @@ onBeforeUnmount(() => {
                                                             stroke-linejoin="round"
                                                         />
                                                     </svg>
-                                                    {{ isDeletingMessage(message) ? 'Удаление' : 'Удалить' }}
                                                 </button>
-                                            </div>
-                                            <div
-                                                class="mt-1 flex items-center justify-end gap-2 text-xs"
-                                                :class="isMine(message) ? 'text-[#4a2118]' : 'text-[#a9a39c]'"
-                                            >
                                                 <span>{{ formatTime(message.created_at) }}</span>
                                                 <span
                                                     v-if="isMine(message)"
@@ -771,12 +765,12 @@ onBeforeUnmount(() => {
                         </div>
 
                         <form
-                            class="border-t border-white/10 bg-[#1a1e24] p-4 sm:p-6"
+                            class="border-t border-[var(--border)] bg-[var(--chat-chrome)] p-4 sm:p-6"
                             @submit.prevent="sendMessage"
                         >
                             <p
                                 v-if="error"
-                                class="mb-3 text-sm font-bold text-[#ff6a3d]"
+                                class="mb-3 text-sm font-bold text-[var(--ember-soft)]"
                             >
                                 {{ error }}
                             </p>
@@ -791,7 +785,7 @@ onBeforeUnmount(() => {
                                 />
                                 <button
                                     type="submit"
-                                    class="inline-flex h-12 shrink-0 items-center rounded-lg bg-[#ff4f2f] px-5 text-sm font-normal uppercase tracking-[0.08em] text-[#171a20] transition hover:bg-[#ff6a3d] disabled:cursor-not-allowed disabled:opacity-60"
+                                    class="inline-flex h-12 shrink-0 items-center rounded-lg bg-[var(--ember)] px-5 text-sm font-normal uppercase tracking-[0.08em] text-[var(--ember-contrast)] transition hover:bg-[var(--ember-soft)] disabled:cursor-not-allowed disabled:opacity-60"
                                     :disabled="sending || newMessage.trim().length === 0"
                                 >
                                     {{ sending ? 'Отправка' : 'Отправить' }}
