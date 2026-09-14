@@ -63,46 +63,46 @@
       - messenger-network
 
   reverb:
-      build:
-          context: .
-          dockerfile: docker/php/Dockerfile
-      image: laravel-messenger-app
-      working_dir: /var/www
-      command: php artisan reverb:start --host=0.0.0.0 --port=8080
-      restart: unless-stopped
-      volumes:
-          - ./:/var/www
-      ports:
-          - "8080:8080"
-      depends_on:
-          - app
-          - redis
-      networks:
-          - messenger-network
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    image: laravel-messenger-app
+    working_dir: /var/www
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www
+    ports:
+      - "8080:8080"
+    depends_on:
+      - app
+      - redis
+    networks:
+      - messenger-network
 
   mailpit:
-      image: 'axllent/mailpit:v1.30'
-      container_name: mailpit
-      ports:
-          - '1025:1025' # Порт для приема писем по SMTP
-          - '8025:8025' # Порт для веб-интерфейса
-      networks:
-          - messenger-network
+    image: 'axllent/mailpit:v1.30'
+    container_name: mailpit
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+    networks:
+      - messenger-network
 
   rabbitmq:
-      image: rabbitmq:4-management
-      container_name: rabbitMQ
-      restart: unless-stopped
-      ports:
-          - "5672:5672"   # AMQP протокол
-          - "15672:15672" # Панель управления Web UI
-      environment:
-          RABBITMQ_DEFAULT_USER: guest
-          RABBITMQ_DEFAULT_PASS: guest
-      volumes:
-          - rabbitmq_data:/var/lib/rabbitmq
-      networks:
-          - messenger-network
+    image: rabbitmq:4-management
+    container_name: rabbitMQ
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - messenger-network
 
 networks:
   messenger-network:

@@ -19,13 +19,13 @@ export default defineConfig({
     ],
 
     server: {
-        host: '0.0.0.0', // Позволяет Vite принимать соединения извне контейнера
-        port: 5173,      // Стандартный порт Vite
+        host: '0.0.0.0',
+        port: 5173,
         hmr: {
-            host: 'localhost', // Указывает браузеру стучаться за HMR на ваш ПК, а не внутрь Docker
+            host: 'localhost',
         },
         watch: {
-            usePolling: true, // Нужно, если вы работаете на Windows (WSL), иначе Vite может не заметить изменение файлов
+            usePolling: true,
         },
     },
 });
