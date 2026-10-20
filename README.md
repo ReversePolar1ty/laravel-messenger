@@ -1,6 +1,6 @@
 # Laravel Messenger
 
-Учебный realtime-мессенджер на Laravel: личные чаты, статусы прочтения, online-presence и тёмная/светлая тема.
+Учебный realtime-мессенджер на Laravel: личные чаты, статусы прочтения, online-presence и т.д.
 
 ## Возможности
 
